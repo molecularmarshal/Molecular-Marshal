@@ -22,7 +22,7 @@ import psycopg2.extras
 import uuid
 import param_dict_parser
 
-#import resources
+import resources 
 
 class Worker():
   # default parameters for the Worker class
@@ -41,9 +41,8 @@ class Worker():
     'avg_seq_jobs'    : 1, # larger of shorter jobs 
     'qname'            : "normal",
     'res_config_name'  : "default",
+    'config_file'      : "default",
   }
-
-  block_dict = {}
 
   # Worker initilization
   def __init__(self):
@@ -51,6 +50,9 @@ class Worker():
     # parse command line arguments
     self.param_dict = param_dict_parser.parse(self.param_dict)
 
+
+    with open(param_dict['config_file'], 'r') as ifp:
+      self.configs = eval(ifp.read())
 
     print self.param_dict
 
@@ -78,6 +80,10 @@ class Worker():
 #                              self.param_dict.get('res_config_name'),
 #                              worker_id = self.param_dict['worker_id'])
 
+    self.resource = resources.LocalResource(self.param_dict.get('user'),
+                                            self.param_dict.get('res_config_name'),
+                                            worker_id = self.param_dict['worker_id']
+                              
     print st
     print self.param_dict
 
