@@ -71,6 +71,7 @@ class Worker():
     conn.commit()
     conn.close()
 
+
 #    res_class = resources.resource_dict[res_name]
 #
 #    self.resource = res_class(self.param_dict.get('user'),

@@ -100,11 +100,16 @@ class Controller(object):
   # call this method when you want to create a new database or wipe an existing one
   def init_database(self, init_files):
     dbname = self.param_dict['dbname']
-    dbdir  = os.path.join(os.getenv('HOME'),
+
+    bigdigsci_prefix = os.getenv('BIGDIGSCIPREFIX')
+    if not bigdigsci_prefix:
+      bigdigsci_prefix = os.getenv('HOME')
+
+    dbdir  = os.path.join(bigdigsci_prefix,
                           self.param_dict['app_dir'],
                           self.param_dict['dbdir'])
 
-    core_dbdir = os.path.join(os.getenv('HOME'),
+    core_dbdir = os.path.join(bigdigsci_prefix,
                               self.param_dict['bigdigsci_dir'],
                               self.param_dict['dbdir'])
 
@@ -176,7 +181,7 @@ class Controller(object):
         h = d['hostname']
         cur.execute("select workers_insert('{0}');".format(h))
         worker_id = cur.fetchone()[0]
-        worker_name = "worker_{0}_{1}".format(h,worker_id)
+        worker_name = "{1}_worker_{0}".format(h,worker_id)
 
         # do block assignments here
 
