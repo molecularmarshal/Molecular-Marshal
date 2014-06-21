@@ -41,8 +41,8 @@ class Controller(object):
     'dbhost'      : 'localhost',
     'dbuser'      : os.getenv('USER'),
     'pythonpaths' : os.getenv('PYTHONPATH') or '',
-    'worker'      : ('scripts/worker.py',
-                     'gearman worker script'),
+    'worker'      : 'worker.py',
+    'conf'        : 'configs.txt',
   }
  
   # generic __init__ method which parses command line parameters
@@ -141,8 +141,8 @@ class Controller(object):
   # start a worker screen session (each worker screen session runs a worker process) 
   # according to the parameters specified in self.param_dict
   def start_workers(self, conn, worker_host, worker_id, worker_name):
-    worker  = os.path.join(os.getenv('HOME'), 
-                           self.param_dict['script_dir'], 
+    worker  = os.path.join(os.getenv('BIGDIGSCIPREFIX'), 
+                           'bigdigsci/core/scripts', 
                            self.param_dict['worker'])
 
     print os.environ
@@ -150,13 +150,13 @@ class Controller(object):
 
     args =       """--worker_name {0} """.format(worker_name)+\
                  """--worker_id {0} """.format(worker_id)+\
-                 """--dbname {dbname} --dbhost {dbhost} --dbuser {dbuser} """.format(**self.param_dict)
+                 """--dbname {dbname} --dbhost {dbhost} --dbuser {dbuser} --conf {conf}""".format(**self.param_dict)
   
     # start a screen here
     start_local_screen =  """screen -S {0} -d -m """.format(worker_name)+\
                  """env PYTHONPATH={pythonpaths} GMX_MAXBACKUP=-1  """ +\
                  """PATH={PATH} """.format(**os.environ) +\
-                 """python {worker} """ + args
+                 """python """ + worker + """ """ + args
   
     # ssh into the worker host and start a screen
     start_remote_screen = """screen -S {0} -d -m ssh {1} """.format(worker_name, worker_host) +\

@@ -29,29 +29,23 @@ import cStringIO
 import shutil
 import sys
 import psycopg2
+import generator
 
 # A base resource class provides implementations for resource handling methods such as
 # job deployment, data loading, data cleanup.
 
+
 class Resource(object):
+
+  generator_options = None
 
   __metaclass__ = ABCMeta
 
   res_configs_fn    = 'res_configs.txt'
   io_dir            = 'resource_io'
-  local_prefix      = '/damsl/mddb/projects/'
-  script_dirs       = ['mddb/scheduler/','mddb/templates/']
+  local_prefix      = os.path.join(os.getenv('HOME'), 'bigdigsci_data')
+  script_dirs       = [os.path.join(os.getenv('BIGDIGSCIPREFIX'), 'bigdigsci')]
   gateway_host      = None
-  generator_options = { 'charmm':        simulators.CharmmSimulator,
-                        'namd':          simulators.NAMDSimulator,
-                        'gromacs':       simulators.GromacsSimulator,
-                        'fred':          dockers.FredDocker,
-                        'amber':         simulators.AmberSimulator,
-                        'membrane':      simulators.MembraneSimulator,
-                        'dock6':         dockers.Dock6Docker,
-                        'dock6amber':    dockers.Dock6AmberDocker,
-                        'impsolv':       impsolv_simulators.ImpSolvSimulator,
-                      }
 
   # Initialize resource configurations, e.g., #nodes per deployments, the name of the
   # job queue (if PBS), etc.
@@ -515,45 +509,13 @@ class LocalResource(Resource):
 
   @staticmethod
   def get_paths():
-    if 'Ubuntu' in platform.platform():
-      oe_arch_dir = 'openeye/arch/Ubuntu-12.04-x64/oedocking/3.0.1'
-    else:
-      oe_arch_dir = 'centos/openeye/bin'
     path_dict = \
-      {'charmm_bin':       '/damsl/projects/molecules/software/MD/Charmm/c36b1/exec/gnu/charmm',
-       'namd_bin':        '/damsl/projects/molecules/software/MD/NAMD/NAMD/NAMD_2.9_Linux-x86_64-multicore/namd2',
-       'gromacs_pdb2gmx': '/damsl/projects/molecules/software/MD/Gromacs/gromacs/gromacs-4.5.5/gromacs/bin/pdb2gmx',
-       'gromacs_grompp':  '/damsl/projects/molecules/software/MD/Gromacs/gromacs/gromacs-4.5.5/gromacs/bin/grompp',
-       'gromacs_mdrun':   '/damsl/projects/molecules/software/MD/Gromacs/gromacs/gromacs-4.5.5/gromacs/bin/mdrun',
-       'omega2_bin':      '/damsl/projects/molecules/software/DD/OpenEye/openeye/bin/omega2',
-       'fred_bin':        '/damsl/projects/molecules/software/DD/OpenEye/{0}/fred'.format(oe_arch_dir),
+      {
        'local_prefix':    Resource.local_prefix,
        'io_dir':          Resource.io_dir,
        'resource_prefix': Resource.local_prefix,
        'template_prefix': os.path.join('/home/{0}'.format(os.environ['USER']), '{0}/mddb/templates'),
        'template_link':   os.path.join('/home/{0}'.format(os.environ['USER']), '{0}/mddb/templates'),
-       'data_dir':        '/damsl/mddb/data',
-       'tleap':           '/damsl/projects/molecules/software/MD/Amber/amber12/bin/tleap',
-       'sander':          '/damsl/projects/molecules/software/MD/Amber/amber12/bin/sander',
-       'cuda_spfp':       '/damsl/projects/molecules/software/MD/Amber/amber12/bin/pmemd.cuda_SPFP',
-       'AMBERHOME':       '/damsl/projects/molecules/software/MD/Amber/amber12/',
-       'charmm':          '/damsl/projects/molecules/software/MD/Charmm/c36b1/exec/gnu/charmm',
-       'charmm-medium':   '/damsl/projects/molecules/software/MD/Charmm/c36b1/exec/gnu/charmm',
-       'namd':            '/damsl/projects/molecules/software/MD/NAMD/NAMD/namd2',
-       'molcharge_bin':   '/damsl/projects/molecules/software/DD/OpenEye/openeye/bin/molcharge',
-       'chimera':         '/damsl/projects/molecules/software/DD/Chimera/exec/bin/chimera',
-       'sphgen':          '/damsl/projects/molecules/software/DD/Dock/Dock/dock6/bin/sphgen',
-       'showbox':         '/damsl/projects/molecules/software/DD/Dock/Dock/dock6/bin/showbox',
-       'grid':            '/damsl/projects/molecules/software/DD/Dock/Dock/dock6/bin/grid',
-       'molcharge':       '/damsl/projects/molecules/software/DD/OpenEye/openeye/arch/redhat-RHEL5-x86/quacpac/1.6.3.1/bin/_molcharge-1.6.3.1',
-       'omega2':          '/damsl/projects/molecules/software/DD/OpenEye/openeye/bin/omega2',
-       'dock6':           '/damsl/projects/molecules/software/DD/Dock/Dock/dock6/bin/dock6',
-       'sphere_selector': '/damsl/projects/molecules/software/DD/Dock/Dock/dock6/bin/sphere_selector',
-       'apopdb2receptor': '/damsl/projects/molecules/software/DD/OpenEye/openeye/arch/redhat-RHEL6-x64/oedocking/3.0.1/bin/apopdb2receptor',
-       'flipper':         '/damsl/projects/molecules/software/DD/OpenEye/openeye/bin/flipper',
-       'fred':         '/damsl/projects/molecules/software/DD/OpenEye/centos/openeye/bin/fred',
-       'OE_LICENSE':      '/damsl/projects/molecules/software/DD/OpenEye/openeye/bin/oe_license.txt'
-
       }
 
     return path_dict
@@ -612,6 +574,7 @@ if __name__ == '__main__':
                  "jobdata":  "",
                  "res_configs_fn": "",
                  "res_config_name": "",
+                 "conf": "",
                }
 
   option_parser = OptionParser()
@@ -619,6 +582,9 @@ if __name__ == '__main__':
 
   param_dict = parse_param_dict(option_parser)
 
+  with open(param_dict['conf'], 'r') as ifp:
+    configs = eval(ifp.read())
+    Resource.generator_options = generator.get_gen_opts(configs)
 
   if param_dict['mode'] == 'execute':
     with open(param_dict['jobdata'], 'r') as ifp:
@@ -638,15 +604,5 @@ if __name__ == '__main__':
     r.execute_jobs_parallel(data, res_paths)
   else:
     test_dockers()
-
-
-
-
-
-
-
-
-
-
 
 

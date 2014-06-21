@@ -23,6 +23,7 @@ import uuid
 import param_dict_parser
 
 import resources 
+import generator
 
 class Worker():
   # default parameters for the Worker class
@@ -38,10 +39,10 @@ class Worker():
     'gen_host'         : "",
     'mwd'              : "",
     'user'             : "",
-    'avg_seq_jobs'    : 1, # larger of shorter jobs 
+    'avg_seq_jobs'     : 1, # larger of shorter jobs 
     'qname'            : "normal",
     'res_config_name'  : "default",
-    'config_file'      : "default",
+    'conf'             : "",
   }
 
   # Worker initilization
@@ -51,10 +52,13 @@ class Worker():
     self.param_dict = param_dict_parser.parse(self.param_dict)
 
 
-    with open(param_dict['config_file'], 'r') as ifp:
-      self.configs = eval(ifp.read())
+    with open(self.param_dict['conf'], 'r') as ifp:
+        self.param_dict['configs'] = eval(ifp.read())
 
     print self.param_dict
+
+    resources.Resource.generator_options = generator.get_gen_opts(
+                                           self.param_dict['configs']['generators'])
 
     res_name = 'localhost'
     proc_id = os.getpid();
@@ -82,7 +86,7 @@ class Worker():
 
     self.resource = resources.LocalResource(self.param_dict.get('user'),
                                             self.param_dict.get('res_config_name'),
-                                            worker_id = self.param_dict['worker_id']
+                                            worker_id = self.param_dict['worker_id'])
                               
     print st
     print self.param_dict

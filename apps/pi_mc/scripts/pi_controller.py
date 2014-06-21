@@ -80,7 +80,7 @@ class Pi_Controller(controller.Controller):
 
       cur.close()
       conn.commit()
-      conn.close()      
+      conn.close()   
 
 
 if __name__ == '__main__':
