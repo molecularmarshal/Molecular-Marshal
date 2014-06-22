@@ -18,4 +18,3 @@ def parse(option_dict):
 
   options,args = option_parser.parse_args()
   return dict(vars(options).items())
-

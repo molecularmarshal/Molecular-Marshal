@@ -176,5 +176,3 @@ begin
   return ret;
 end;
 $$ language plpgsql;
-
-

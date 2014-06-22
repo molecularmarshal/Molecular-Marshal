@@ -2,7 +2,8 @@ from __future__ import division
 import random
 import generator
 
-class PI_Estimator(generator.Generator): 
+class PI_Estimator(generator.Generator):
+
     """
     input_params:
     {'x_seed': x_seed, 'y_seed':y_seed, 'num_samples':#}

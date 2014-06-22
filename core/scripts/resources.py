@@ -604,5 +604,3 @@ if __name__ == '__main__':
     r.execute_jobs_parallel(data, res_paths)
   else:
     test_dockers()
-
-
