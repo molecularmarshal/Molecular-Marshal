@@ -71,7 +71,6 @@ class Pi_Controller(controller.Controller):
       #print x_rand_seeds, y_rand_seeds
 
       job_dicts =  map(dict, zip(x_rand_seeds, y_rand_seeds))
-
       num_samples = 100
       for d in job_dicts:
         d['num_samples'] = num_samples

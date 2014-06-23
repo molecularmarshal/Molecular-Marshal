@@ -15,8 +15,8 @@ class PI_Estimator(generator.Generator):
         num_samples = input_params['num_samples']
         rand_x = random.Random()
         rand_y = random.Random()
-        rand_x.seed(input_params['x_seed'])
-        rand_y.seed(input_params['y_seed'])
+        rand_x.seed(input_params['x_rand_seed'])
+        rand_y.seed(input_params['y_rand_seed'])
         num_inside = 0
         num_outside = 0
 
@@ -39,8 +39,15 @@ class PI_Estimator(generator.Generator):
         return pi
 
     def load(self, conn, d):
-        raise NotImplementedError( "Should have implemented this" )
-
+      print d
+      cur = conn.cursor()
+      cur.execute(
+                   """INSERT INTO pi_results (job_id, num_samples, pi_value)
+                       VALUES (%s, %s, %s);""",
+                   (d['jq_entry_id'], d['num_samples'], d['result']))
+      conn.commit()
+      cur.close()
+      conn.close()
 if __name__ == '__main__':
     mcPi = PI_Estimator()
     inp_params = {
@@ -50,5 +57,3 @@ if __name__ == '__main__':
     result = mcPi.run(inp_params)
     #mcPi.parse_gen_opts()
     print result
-    
-

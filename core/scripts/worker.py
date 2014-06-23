@@ -118,7 +118,6 @@ class Worker():
 
         try:
           res = cur.fetchone()[0]
-          print "The content of the res is " + str(res)
           job_dicts = map(eval, res)
 
           print datetime.datetime.now()

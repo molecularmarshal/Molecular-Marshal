@@ -134,6 +134,7 @@ class Resource(object):
 
   # Starts a deployment process and insert it into the deployment process pool
   def deploy(self, session_dir, input_data, param_dict):
+    print "this is in resource.deploy()"
     deployment_id = self.get_next_deployment_id()
     self.prepare_job_dicts(session_dir, deployment_id, input_data, param_dict)
     p = Process(target = self.deploy_and_wait, args = (session_dir, deployment_id, input_data, param_dict))
@@ -274,7 +275,7 @@ class Resource(object):
   #       according to the generator
   @staticmethod
   def load(conn, job_data, local_paths):
-
+    
     if not isinstance(job_data, list):
       job_data = [job_data]
 
@@ -285,7 +286,7 @@ class Resource(object):
                                 d['session_dir'], d['deployment_dir'], d['run_dir'])
       print 'from: ', result_dir
       gen_name   = d.get('generator') or d.get('simulator') or d.get('docker')
-      generator  = Resource.generator_options[gen_name]()
+      generator = Resource.generator_options[gen_name]()
 
       try:
         ret = generator.load(conn, result_dir, d, local_paths)
@@ -392,7 +393,7 @@ class Resource(object):
       input_dict['num_cores_per_node'] = num_cores_per_node
       input_dict['device_id'] = device_id
       gen_name  = input_dict.get('generator') or input_dict.get('simulator') or input_dict.get('docker')
-      generator = Resource.generator_options[gen_name]()
+      generator = Resource.generator_options[gen_name]
 
       run_dict = dict(input_dict.items() + path_dict.items() + self.res_configs.items())
 
@@ -407,8 +408,6 @@ class Resource(object):
       jobdict_fn = os.path.join(output_prefix, 'jobdict.txt')
       with open(os.path.join(output_prefix, jobdict_fn), 'w') as ofp:
         ofp.write(str(input_dict))
-
-
 
       # save the original values for stdout and stderr 
       actual_stdout = sys.stdout
@@ -503,7 +502,8 @@ class LocalResource(Resource):
   res_configs = { 'gpu': {'job_concurrency':  1, 'num_deployments': 8},
                   'dev': {'job_concurrency':  1, 'num_deployments': 1},
                 }
-
+  
+  # TODO specify this method?
   @staticmethod
   def get_paths():
     path_dict = \
@@ -537,23 +537,33 @@ class LocalResource(Resource):
     path_dict = LocalResource.get_paths()
     path_dict['template_prefix'] = path_dict['template_prefix'].format(self.user)
     path_dict['template_link']   = path_dict['template_link'].format(self.user)
-
+    
+    # TODO more general?
+    gen_name = "pi_estimator"
+    print Resource.generator_options
     for d in input_data:
-      #print d
-      gen_name  = d.get('generator') or d.get('simulator') or d.get('docker')
+      d['generator'] = gen_name  
+      #gen_name  = d.get('generator') or d.get('simulator') or d.get('docker')
       gen_class = Resource.generator_options[gen_name]
-      gen_class.preprocess(d, path_dict)
+      # TODO delete test
+      result = gen_class.run(d)
+      d['result'] = result 
+      #gen_class.preprocess(d, path_dict)
       #print 'input_dict:', d
     #print 'input_data:', input_data
-
-    self.execute_jobs_parallel(input_data, path_dict)
+    # TODO uncomment for general case
+    #self.execute_jobs_parallel(input_data, path_dict)
+    conn = psycopg2.connect(database=param_dict['dbname'])
+    '''
     conn = mddb_utils.get_dbconn(param_dict['dbname'],
                                  param_dict['dbuser'],
                                  param_dict['dbhost'],
                                  param_dict['dbpass'])
-
-
-    self.load(conn, input_data, path_dict)
+    '''
+   
+    gen_class.load(conn, d)
+    # TODO uncomment for more general situation
+    # self.load(conn, input_data, path_dict)
     conn.close()
 
     self.cleanup(input_data, LocalResource.get_paths())
