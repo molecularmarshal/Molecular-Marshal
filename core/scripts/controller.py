@@ -28,7 +28,6 @@ from multiprocessing import Process
 # Generic controller class
 class Controller(object): 
   sharedacc = 'webapp'
-
   
   option_parser = OptionParser()
 
@@ -92,7 +91,6 @@ class Controller(object):
     options,args = self.option_parser.parse_args()
     return dict(vars(options).items())
     
- 
 
   # database init function:
   #   (1) try to drop the current database and to create a new one 
@@ -100,7 +98,7 @@ class Controller(object):
   # call this method when you want to create a new database or wipe an existing one
   def init_database(self, init_files):
     dbname = self.param_dict['dbname']
-
+    print dbname
     bigdigsci_prefix = os.getenv('BIGDIGSCIPREFIX')
     if not bigdigsci_prefix:
       bigdigsci_prefix = os.getenv('HOME')
@@ -144,8 +142,8 @@ class Controller(object):
     worker  = os.path.join(os.getenv('BIGDIGSCIPREFIX'), 
                            'bigdigsci/core/scripts', 
                            self.param_dict['worker'])
-
-    print os.environ
+    
+    #print os.environ
     sys.stdout.flush()
 
     args =       """--worker_name {0} """.format(worker_name)+\
@@ -176,6 +174,7 @@ class Controller(object):
   def setup_workers(self, l):
     conn = psycopg2.connect(database=self.param_dict['dbname'])
     cur  = conn.cursor()
+
     for d in l:
       for i in xrange(0,d['num_workers']):
         h = d['hostname']
@@ -184,7 +183,6 @@ class Controller(object):
         worker_name = "{1}_worker_{0}".format(h,worker_id)
 
         # do block assignments here
-
         self.start_workers(conn, h, worker_id, worker_name)
 
     cur.close()

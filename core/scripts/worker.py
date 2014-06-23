@@ -54,11 +54,11 @@ class Worker():
 
     with open(self.param_dict['conf'], 'r') as ifp:
         self.param_dict['configs'] = eval(ifp.read())
-
+    
     print self.param_dict
-
     resources.Resource.generator_options = generator.get_gen_opts(
                                            self.param_dict['configs']['generators'])
+
 
     res_name = 'localhost'
     proc_id = os.getpid();
@@ -112,8 +112,13 @@ class Worker():
         sql_st = 'select jobqueue_dequeue({0})'.format(deployment_size)
         cur.execute(sql_st)
 
+        #print str(self.param_dict)
+        #print str(session_dir)
+        #print resources.LocalResource.get_paths()
+
         try:
           res = cur.fetchone()[0]
+          print "The content of the res is " + str(res)
           job_dicts = map(eval, res)
 
           print datetime.datetime.now()
@@ -143,7 +148,3 @@ if __name__ == '__main__':
   print "worker updated"
   print "ready to work"
   worker.process_work()
-  
-
-
-

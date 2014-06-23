@@ -121,11 +121,8 @@ class Resource(object):
 
     for p in finished_processes:
       p.join()
-
-
+    
     return len(self.process_pool) < self.num_deployments
-
-
 
   @staticmethod
   def get_environ():
@@ -184,7 +181,7 @@ class Resource(object):
                                                ))
 
     st_io.seek(0)
-    conn = psycopg2.connect(database=self.param_dict['dbname'])
+    conn = psycopg2.connect(database=param_dict['dbname'])
 
     '''
     conn = mddb_utils.get_dbconn(param_dict['dbname'],

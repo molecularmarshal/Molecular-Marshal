@@ -2,7 +2,7 @@
   'resources': {},
   'generators': 
     {'pi_estimator': 
-      {'gen_path':  'pi_estimator.py',
+      {'gen_path':  '/home/chao/work/cityU/bigdigsci/apps/pi_mc/scripts/pi_estimator.py',
        'gen_class': 'PI_Estimator'
       }
     }

@@ -1,0 +1,18 @@
+screen -X -S 1_worker_localhost quit
+
+screen -X -S 2_worker_localhost quit
+
+screen -X -S 3_worker_localhost quit
+
+Start worker 1_worker_localhost
+finished
+screen -S 1_worker_localhost -d -m env PYTHONPATH=/home/chao/work/cityU/bigdigsci/core/scripts GMX_MAXBACKUP=-1  PATH=/home/chao/work/ml_workspace/pl_hw/FBDK/fbdk:/home/chao/work/ml_workspace/pl_hw/FBDK/fbdk-1.23-byte:/home/chao/work/ml_workspace/pl_hw/FBDK/fbdk/src/Afbv/:/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/bin/vendor_perl:/usr/bin/core_perl python /home/chao/work/cityU/bigdigsci/core/scripts/worker.py --worker_name 1_worker_localhost --worker_id 1 --dbname testdb_pi --dbhost localhost --dbuser chao --conf configs.txt
+
+Start worker 2_worker_localhost
+finished
+screen -S 2_worker_localhost -d -m env PYTHONPATH=/home/chao/work/cityU/bigdigsci/core/scripts GMX_MAXBACKUP=-1  PATH=/home/chao/work/ml_workspace/pl_hw/FBDK/fbdk:/home/chao/work/ml_workspace/pl_hw/FBDK/fbdk-1.23-byte:/home/chao/work/ml_workspace/pl_hw/FBDK/fbdk/src/Afbv/:/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/bin/vendor_perl:/usr/bin/core_perl python /home/chao/work/cityU/bigdigsci/core/scripts/worker.py --worker_name 2_worker_localhost --worker_id 2 --dbname testdb_pi --dbhost localhost --dbuser chao --conf configs.txt
+
+Start worker 3_worker_localhost
+finished
+screen -S 3_worker_localhost -d -m env PYTHONPATH=/home/chao/work/cityU/bigdigsci/core/scripts GMX_MAXBACKUP=-1  PATH=/home/chao/work/ml_workspace/pl_hw/FBDK/fbdk:/home/chao/work/ml_workspace/pl_hw/FBDK/fbdk-1.23-byte:/home/chao/work/ml_workspace/pl_hw/FBDK/fbdk/src/Afbv/:/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/bin/vendor_perl:/usr/bin/core_perl python /home/chao/work/cityU/bigdigsci/core/scripts/worker.py --worker_name 3_worker_localhost --worker_id 3 --dbname testdb_pi --dbhost localhost --dbuser chao --conf configs.txt
+
