@@ -39,15 +39,18 @@ class Pi_Controller(controller.Controller):
     self.add_parser_options(self.param_dict)
     self.param_dict = self.parse_param_dict()
 
+
   def init(self):
     self.quit_everything()
     self.init_database(self.app_db_files)
+
 
   def setup(self):
     self.quit_everything()
     l = []
     l.append({'hostname':'localhost', 'num_workers': 3})
     self.setup_workers(l)
+
 
   def exec_jobs(self):
     conn = psycopg2.connect(database=self.param_dict['dbname'])
@@ -80,8 +83,6 @@ class Pi_Controller(controller.Controller):
     conn.close()   
 
 
-
-
   def run(self):
     if self.param_dict['mode'] == 'init':
       self.init()
@@ -93,9 +94,6 @@ class Pi_Controller(controller.Controller):
       self.init()
       self.setup()
       self.exec_jobs()
-
-
-
 
 
 if __name__ == '__main__':

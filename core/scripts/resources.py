@@ -424,9 +424,9 @@ class Resource(object):
           sys.stdout = ofp
           sys.stderr = ofp
 
-        print run_dict
+        #print "THIS IS RUN_DICT: " + str(run_dict)
         out_dict = gen_obj.run(output_prefix, run_dict)
-
+        print "THIS IS OUT_DICT: " + str(out_dict)
         if self.__class__ != LocalResource:
           # reset stdout and stderr to original values
           sys.stdout = actual_stdout
@@ -550,11 +550,9 @@ class LocalResource(Resource):
       #gen_name  = d.get('generator') or d.get('simulator') or d.get('docker')
       gen_class = Resource.generator_options[d['generator']]
       gen_obj = gen_class()
-      # TODO delete test
       gen_obj.preprocess(dict(d.items() + path_dict.items()))
       #print 'input_dict:', d
     #print 'input_data:', input_data
-    # TODO uncomment for general case
     self.execute_jobs_parallel(input_data, path_dict)
     conn = psycopg2.connect(database=param_dict['dbname'])
 
@@ -565,7 +563,6 @@ class LocalResource(Resource):
                                  param_dict['dbpass'])
     '''
    
-    # TODO uncomment for more general situation
     self.load(conn, input_data, path_dict)
     conn.close()
 

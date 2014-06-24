@@ -38,10 +38,8 @@ class PI_Estimator(generator.Generator):
 
         pi = (num_inside/num_samples)*4
 
-        print "++++++++++++++++" + output_prefix 
-
         with open(os.path.join(output_prefix, input_params['result_fn']), 'w') as ofp:
-          ofp.write('{0}\t{1}\t{2}'.format(d['jq_entry_id'], d['num_samples'], pi))
+          ofp.write('{0}\t{1}\t{2}'.format(input_params['jq_entry_id'], input_params['num_samples'], pi))
 
         return pi
 
