@@ -16,17 +16,17 @@ def get_gen_opts(gen_configs):
     else:
       gen_class        = eval("{gen_class}".format(**v))
 
-    generator_options[k] = gen_class()
+    generator_options[k] = gen_class
   return generator_options 
 
 class Generator(object):
   
   @abstractmethod
-  def preprocessing(self, input_params):
+  def preprocess(self, input_params):
     raise NotImplementedError( "Should have implemented this" )
 
   @abstractmethod
-  def run(self, input_params):
+  def run(self, output_prefix, input_params):
     raise NotImplementedError( "Should have implemented this" )
 
   @abstractmethod

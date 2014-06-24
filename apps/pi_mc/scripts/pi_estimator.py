@@ -1,6 +1,7 @@
 from __future__ import division
 import random
 import generator
+import os
 
 class PI_Estimator(generator.Generator):
 
@@ -8,10 +9,10 @@ class PI_Estimator(generator.Generator):
     input_params:
     {'x_seed': x_seed, 'y_seed':y_seed, 'num_samples':#}
     """
-    def preprocessing(self, input_params):
-        print "preprocessing is not required" 
+    def preprocess(self, input_params):
+        return
 
-    def run (self, input_params):
+    def run (self, output_prefix, input_params):
         num_samples = input_params['num_samples']
         rand_x = random.Random()
         rand_y = random.Random()
@@ -36,18 +37,25 @@ class PI_Estimator(generator.Generator):
                 num_inside = num_inside + 1
 
         pi = (num_inside/num_samples)*4
+
+        print "++++++++++++++++" + output_prefix 
+
+        with open(os.path.join(output_prefix, input_params['result_fn']), 'w') as ofp:
+          ofp.write('{0}\t{1}\t{2}'.format(d['jq_entry_id'], d['num_samples'], pi))
+
         return pi
 
-    def load(self, conn, d):
+    def load(self, conn, result_dir, d, local_paths):
       print d
       cur = conn.cursor()
-      cur.execute(
-                   """INSERT INTO pi_results (job_id, num_samples, pi_value)
-                       VALUES (%s, %s, %s);""",
-                   (d['jq_entry_id'], d['num_samples'], d['result']))
+
+      with open(os.path.join(result_dir, d['result_fn'])) as ifp:
+        cur.copy_from(ifp, 'pi_results', columns=('job_id', 'num_samples', 'pi_value'))
+
       conn.commit()
       cur.close()
-      conn.close()
+
+
 if __name__ == '__main__':
     mcPi = PI_Estimator()
     inp_params = {

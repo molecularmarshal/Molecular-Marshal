@@ -275,7 +275,7 @@ class Resource(object):
   #       according to the generator
   @staticmethod
   def load(conn, job_data, local_paths):
-    
+    print "load function" 
     if not isinstance(job_data, list):
       job_data = [job_data]
 
@@ -285,13 +285,15 @@ class Resource(object):
       result_dir = os.path.join(Resource.local_prefix, Resource.io_dir, 
                                 d['session_dir'], d['deployment_dir'], d['run_dir'])
       print 'from: ', result_dir
-      gen_name   = d.get('generator') or d.get('simulator') or d.get('docker')
-      generator = Resource.generator_options[gen_name]()
+      gen_name   = d.get('generator') or d.get('simulator') or d.get('docker')   
+      # TODO does not work, PI_Estimator is not callable
+      print Resource.generator_options
+      gen_obj = Resource.generator_options[gen_name]()
 
-      try:
-        ret = generator.load(conn, result_dir, d, local_paths)
-      except:
-        ret = (False, '')
+      ret = gen_obj.load(conn, result_dir, d, local_paths)
+      #try:
+      #except:
+      #  ret = (False, '')
 
       try:
         alright,path = ret
@@ -393,7 +395,7 @@ class Resource(object):
       input_dict['num_cores_per_node'] = num_cores_per_node
       input_dict['device_id'] = device_id
       gen_name  = input_dict.get('generator') or input_dict.get('simulator') or input_dict.get('docker')
-      generator = Resource.generator_options[gen_name]
+      gen_obj = Resource.generator_options[gen_name]()
 
       run_dict = dict(input_dict.items() + path_dict.items() + self.res_configs.items())
 
@@ -403,6 +405,10 @@ class Resource(object):
                                    run_dict['session_dir'], 
                                    run_dict['deployment_dir'],
                                    run_dict['run_dir'])
+
+
+      if not os.path.exists(output_prefix):
+        os.makedirs(output_prefix)
 
       joblog_fn = os.path.join(output_prefix, 'joblog.txt')
       jobdict_fn = os.path.join(output_prefix, 'jobdict.txt')
@@ -419,7 +425,7 @@ class Resource(object):
           sys.stderr = ofp
 
         print run_dict
-        out_dict = generator.run(run_dict)
+        out_dict = gen_obj.run(output_prefix, run_dict)
 
         if self.__class__ != LocalResource:
           # reset stdout and stderr to original values
@@ -539,21 +545,19 @@ class LocalResource(Resource):
     path_dict['template_link']   = path_dict['template_link'].format(self.user)
     
     # TODO more general?
-    gen_name = "pi_estimator"
     print Resource.generator_options
     for d in input_data:
-      d['generator'] = gen_name  
       #gen_name  = d.get('generator') or d.get('simulator') or d.get('docker')
-      gen_class = Resource.generator_options[gen_name]
+      gen_class = Resource.generator_options[d['generator']]
+      gen_obj = gen_class()
       # TODO delete test
-      result = gen_class.run(d)
-      d['result'] = result 
-      #gen_class.preprocess(d, path_dict)
+      gen_obj.preprocess(dict(d.items() + path_dict.items()))
       #print 'input_dict:', d
     #print 'input_data:', input_data
     # TODO uncomment for general case
-    #self.execute_jobs_parallel(input_data, path_dict)
+    self.execute_jobs_parallel(input_data, path_dict)
     conn = psycopg2.connect(database=param_dict['dbname'])
+
     '''
     conn = mddb_utils.get_dbconn(param_dict['dbname'],
                                  param_dict['dbuser'],
@@ -561,14 +565,11 @@ class LocalResource(Resource):
                                  param_dict['dbpass'])
     '''
    
-    gen_class.load(conn, d)
     # TODO uncomment for more general situation
-    # self.load(conn, input_data, path_dict)
+    self.load(conn, input_data, path_dict)
     conn.close()
 
-    self.cleanup(input_data, LocalResource.get_paths())
-
- 
+    #self.cleanup(input_data, LocalResource.get_paths())
 
   @staticmethod
   def get_environ():
