@@ -48,7 +48,8 @@ class Pi_Controller(controller.Controller):
   def setup(self):
     self.quit_everything()
     l = []
-    l.append({'hostname':'localhost', 'num_workers': 3})
+    #l.append({'hostname':'localhost', 'num_workers': 3})
+    l.append({'res_name':'DummyResource', 'num_workers': 1})
     self.setup_workers(l)
 
 
@@ -67,9 +68,7 @@ class Pi_Controller(controller.Controller):
 
     for i in xrange(0,num_jobs):
       y_rand_seeds.append(('y_rand_seed', "%.20f" % time.time()))
-
-    #print x_rand_seeds, y_rand_seeds
-
+    
     job_dicts =  map(dict, zip(x_rand_seeds, y_rand_seeds))
     num_samples = 100
     for d in job_dicts:
@@ -90,7 +89,7 @@ class Pi_Controller(controller.Controller):
       self.setup()
     elif self.param_dict['mode'] == 'exec':
       self.exec_jobs()
-    else:
+    elif self.param_dict['mode'] == 'debug':
       self.init()
       self.setup()
       self.exec_jobs()

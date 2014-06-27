@@ -52,14 +52,3 @@ class PI_Estimator(generator.Generator):
 
       conn.commit()
       cur.close()
-
-
-if __name__ == '__main__':
-    mcPi = PI_Estimator()
-    inp_params = {
-            'x_seed': random.random(),
-            'y_seed': random.random(),
-            'num_samples': 100000}
-    result = mcPi.run(inp_params)
-    #mcPi.parse_gen_opts()
-    print result

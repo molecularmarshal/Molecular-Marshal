@@ -7,11 +7,12 @@ import math
 import cStringIO
 import imp
 
-def get_gen_opts(gen_configs):
+def get_gen_opts(script_path, gen_configs):
   generator_options = {}
   for k,v in gen_configs.items():
     if v.get('gen_path'):
-      mod = imp.load_source(k, v['gen_path'])
+      gen_path = os.path.join(script_path, v['gen_path'])
+      mod = imp.load_source(k, gen_path)
       gen_class        = eval("mod.{gen_class}".format(**v))
     else:
       gen_class        = eval("{gen_class}".format(**v))

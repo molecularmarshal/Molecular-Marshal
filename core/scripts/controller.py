@@ -118,7 +118,8 @@ class Controller(object):
 
     for f in init_files:
       my_utils.load_sql(os.path.join(dbdir,f), dbname)
-  
+ 
+
   # iterates through the 'Workers' table and terminates all
   # existing worker screen sessions
   def quit_existing_workers(self):
@@ -138,7 +139,7 @@ class Controller(object):
 
   # start a worker screen session (each worker screen session runs a worker process) 
   # according to the parameters specified in self.param_dict
-  def start_workers(self, conn, worker_host, worker_id, worker_name):
+  def start_workers(self, conn, res_name, worker_id, worker_name):
     worker  = os.path.join(os.getenv('BIGDIGSCIPREFIX'), 
                            'bigdigsci/core/scripts', 
                            self.param_dict['worker'])
@@ -148,27 +149,21 @@ class Controller(object):
 
     args =       """--worker_name {0} """.format(worker_name)+\
                  """--worker_id {0} """.format(worker_id)+\
+                 """--res_name {0} """.format(res_name)+\
                  """--dbname {dbname} --dbhost {dbhost} --dbuser {dbuser} --conf {conf}""".format(**self.param_dict)
   
     # start a screen here
-    start_local_screen =  """screen -S {0} -d -m """.format(worker_name)+\
+    template  =  """screen -S {0} -d -m """.format(worker_name)+\
                  """env PYTHONPATH={pythonpaths} GMX_MAXBACKUP=-1  """ +\
                  """PATH={PATH} """.format(**os.environ) +\
                  """python """ + worker + """ """ + args
   
-    # ssh into the worker host and start a screen
-    start_remote_screen = """screen -S {0} -d -m ssh {1} """.format(worker_name, worker_host) +\
-                 """env PYTHONPATH={pythonpaths} GMX_MAXBACKUP=-1 """ +\
-                 """"python """ + worker + """ """ + args  + """" """
-
-
-    template = start_local_screen if worker_host == 'localhost' else start_remote_screen
     my_utils.run_cmd(template.format(**self.param_dict))
   
   # iterates through a list 'l' of workers and starts worker processes
   # there are three type of resources: localhost, localcluster-remotehost,
   # and remote-resource. For the first two, the worker screen session
-  # runs on the worker host 'worker_host' and the data is also generated
+  # runs on the specified resource 'res_name' and the data is also generated
   # on the woker host. For remote-resource, the worker screen session is
   # running on localhost but the data is generated on the remote resource.
   def setup_workers(self, l):
@@ -177,13 +172,13 @@ class Controller(object):
 
     for d in l:
       for i in xrange(0,d['num_workers']):
-        h = d['hostname']
-        cur.execute("select workers_insert('{0}');".format(h))
+        res_name = d['res_name']
+        cur.execute("select workers_insert('{0}');".format(res_name))
         worker_id = cur.fetchone()[0]
-        worker_name = "{1}_worker_{0}".format(h,worker_id)
+        worker_name = "{1}_worker_{0}".format(res_name,worker_id)
 
         # do block assignments here
-        self.start_workers(conn, h, worker_id, worker_name)
+        self.start_workers(conn, res_name, worker_id, worker_name)
 
     cur.close()
     conn.commit()

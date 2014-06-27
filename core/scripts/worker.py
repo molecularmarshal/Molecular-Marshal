@@ -36,7 +36,7 @@ class Worker():
     'mode'             : "", 
     'worker_id'        : 0,
     'worker_name'      : "",
-    'gen_host'         : "",
+    'res_name'         : "",
     'mwd'              : "",
     'user'             : "",
     'avg_seq_jobs'     : 1, # larger of shorter jobs 
@@ -56,11 +56,27 @@ class Worker():
         self.param_dict['configs'] = eval(ifp.read())
     
     print self.param_dict
+    script_path = os.path.join(os.get_environ('BIGDIGSCIPREFIX'),
+                               self.param_dict['configs']['app_dir'])
+
     resources.Resource.generator_options = generator.get_gen_opts(
+                                           script_path,
                                            self.param_dict['configs']['generators'])
 
+    # resource lookup
+    res_name = self.param_dict['res_name'] 
+    res_configs = self.param_dict['configs']['resources'][res_name]
 
-    res_name = 'localhost'
+    res_class = resources.get_res_class(res_configs)
+    res_configs['res_name'] = res_name
+
+    self.resource = res_class(self.param_dict.get('user'),
+                              res_configs,
+                              self.param_dict['worker_id'])
+
+
+    print self.resource
+
     proc_id = os.getpid();
     conn = psycopg2.connect(database=self.param_dict['dbname'])
     cur = conn.cursor()
@@ -77,22 +93,12 @@ class Worker():
     conn.commit()
     conn.close()
 
-
-#    res_class = resources.resource_dict[res_name]
-#
-#    self.resource = res_class(self.param_dict.get('user'),
-#                              self.param_dict.get('res_config_name'),
-#                              worker_id = self.param_dict['worker_id'])
-
-    self.resource = resources.LocalResource(self.param_dict.get('user'),
-                                            self.param_dict.get('res_config_name'),
-                                            worker_id = self.param_dict['worker_id'])
-                              
+                           
     print st
     print self.param_dict
 
   def process_work(self):
-    print "start processing work"
+   print "start processing work"
 
     try:
       gateway_host = self.resource.gateway_host or 'localhost'
