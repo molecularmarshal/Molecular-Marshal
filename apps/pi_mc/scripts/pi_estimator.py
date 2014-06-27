@@ -52,3 +52,8 @@ class PI_Estimator(generator.Generator):
 
       conn.commit()
       cur.close()
+
+    def get_output_fns(self, d):
+      output_dict = {'result_fn': 'result.txt'}
+      return output_dict
+

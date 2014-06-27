@@ -1,5 +1,5 @@
 {
-  'app_dir': 'apps/pi_mc/'
+  'app_dir': 'apps/pi_mc/',
   'resources': 
     {'DummyResource':
       {'res_path':   'scripts/dummy_resource.py',
@@ -15,5 +15,4 @@
        'gen_class': 'PI_Estimator'
       }
     }
-
 }

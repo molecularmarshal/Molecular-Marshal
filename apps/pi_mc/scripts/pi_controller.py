@@ -24,11 +24,10 @@ import psycopg2.extras
 
 class Pi_Controller(controller.Controller):
   app_param_dict = {
-    'app_dir':              'bigdigsci/apps/pi_mc',
-    'bigdigsci_dir':        'bigdigsci/core',
     'dbname':               'testdb_pi',
     'dbdir':                'database',
-    'script_dir':           'scripts',
+    'app_prefix':           os.path.join(os.getenv('BIGDIGSCIPREFIX'), 'apps/pi_mc'),
+    'app_scriptdir':       'scripts',
     'mode':                 '',
   }
   
@@ -68,7 +67,7 @@ class Pi_Controller(controller.Controller):
 
     for i in xrange(0,num_jobs):
       y_rand_seeds.append(('y_rand_seed', "%.20f" % time.time()))
-    
+   
     job_dicts =  map(dict, zip(x_rand_seeds, y_rand_seeds))
     num_samples = 100
     for d in job_dicts:
