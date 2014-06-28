@@ -143,7 +143,6 @@ class Resource(object):
 
   # Starts a deployment process and insert it into the deployment process pool
   def deploy(self, session_dir, input_data, param_dict):
-    print "this is in resource.deploy()"
     deployment_id = self.get_next_deployment_id()
     self.prepare_job_dicts(session_dir, deployment_id, input_data, param_dict)
     p = Process(target = self.deploy_and_wait, args = (session_dir, deployment_id, input_data, param_dict))
@@ -380,7 +379,6 @@ class Resource(object):
 
 class RemoteResource(Resource):
  
-  # TODO job_concurrency 
   job_concurrency = 1
   num_deployments = 30
 
@@ -418,8 +416,11 @@ class RemoteResource(Resource):
       os.makedirs(os.path.join(Resource.local_prefix,  sync_dir))
     except:
       pass
-
-    self.submit(session_dir, deployment_dir, job_dict_list)
+    
+    # pass the app_dir 
+    app_dir = param_dict['configs']['app_dir']
+    generators = param_dict['configs']['generators']
+    self.submit(session_dir, deployment_dir, job_dict_list, app_dir, generators)
 
     #print 'output files: ', wait_list
     while wait_list:
@@ -454,17 +455,18 @@ class RemoteResource(Resource):
 
     conn.close()
     
-  def compose_exec_cmd(self, compute_node, input_data_fn_remote, res_config_fn_remote):
+  def compose_exec_cmd(self, compute_node, input_data_fn_remote, res_config_fn_remote, app_dir, generators):
     env_st = Resource.print_environ(self.get_environ())
     script_path = os.path.join(self.resource_prefix, 'core/scripts')
-    cmd_st = "ssh {0} env {1} python {2}/resources.py --resource {3} --mode execute --jobdata {4} --prefix {5} --res_config_fn {6}".format(
+    cmd_st = "ssh {0} env {1} python {2}/resources.py --resource {3} --mode execute --jobdata {4} --prefix {5} --res_config_fn {6} --app_dir {7} --generators {8}".format(
             compute_node, env_st, script_path,
             self.gateway_host, input_data_fn_remote, 
-            self.resource_prefix, res_config_fn_remote)
+            self.resource_prefix, res_config_fn_remote,
+            app_dir, generators)
 
     return cmd_st
 
-  def submit(self, session_dir, deployment_dir, input_data):
+  def submit(self, session_dir, deployment_dir, input_data, app_dir, generators):
     sync_list = []
     for input_dict in input_data:
       input_dict['session_dir'] = session_dir
@@ -480,16 +482,22 @@ class RemoteResource(Resource):
     session_dir          = os.path.join(Resource.io_dir, session_dir)
     remote_prefix        = path_dict['resource_prefix']
     uid                  = 'job_' + str(uuid.uuid4())
-
+    
+    # local and remote path for input data sync
     deployment_path        = os.path.join(Resource.local_prefix, session_dir, 
                                           deployment_dir)
     deployment_path_remote = os.path.join(remote_prefix, session_dir, deployment_dir)
+    
+    # file stored input data  
     input_data_fn          = os.path.join(deployment_path, uid)
     input_data_fn_remote   = os.path.join(deployment_path_remote, uid)
-
+   
+    # file stored resource configuration file
     res_config_fn          = os.path.join(deployment_path, uid + '_res.txt')
     res_config_fn_remote   = os.path.join(deployment_path_remote, uid + '_res.txt')
-
+    
+    # if there is no available compute nodes, gateway_host will be applied to 
+    # conducting computing
     try:
       node_list            = self.__class__.compute_nodes
       num_nodes            = len(node_list)
@@ -506,26 +514,29 @@ class RemoteResource(Resource):
       ofp.write(json.dumps(self.res_configs))
 
 
-    print 'session_dir:', session_dir
-    print 'deployment_dir:', deployment_dir
-    print 'local_prefix:', Resource.local_prefix
+    #print 'session_dir:', session_dir
+    #print 'deployment_dir:', deployment_dir
+    #print 'local_prefix:', Resource.local_prefix
+
     # sync the input data
     self.__class__.sync_input_dirs(self.__class__.gateway_host, 
                                      sync_list + [(os.path.join(session_dir, deployment_dir),'*')], 
                                      Resource.local_prefix, remote_prefix)
-    cmd_st = self.compose_exec_cmd(compute_node, input_data_fn_remote, res_config_fn_remote)
+    cmd_st = self.compose_exec_cmd(compute_node, input_data_fn_remote, res_config_fn_remote, app_dir, generators)
     print cmd_st
     subprocess.Popen(cmd_st,
                      shell=True, stdout=subprocess.PIPE,
                      stdin=subprocess.PIPE)
 
-  
 
   @staticmethod
   def sync_scripts(remote_host, remote_prefix, local_prefix, script_dir):
     local_dir  = os.path.join(local_prefix, script_dir)
     remote_dir = os.path.join(remote_prefix, script_dir)
+    print local_dir
+    print remote_dir
     RemoteResource.sync_input(local_dir, remote_host, remote_dir, '*')
+
 
   @staticmethod
   def sync_input_dirs(remote_host, sync_list, local_prefix, remote_prefix):
@@ -534,6 +545,7 @@ class RemoteResource(Resource):
       remote_dir = "{0}/{1}/".format(remote_prefix, dir)
       RemoteResource.sync_input(local_dir, remote_host, remote_dir, pattern)
 
+
   @staticmethod
   def sync_output_dirs(remote_host, sync_list, local_prefix, remote_prefix):
     for dir, pattern in sync_list:
@@ -541,12 +553,14 @@ class RemoteResource(Resource):
       remote_dir = "{0}/{1}/".format(remote_prefix, dir)
       RemoteResource.sync_output(local_dir, remote_host, remote_dir, pattern)
 
+
   @staticmethod
   def remove_remote_dirs(remote_host, remote_dirs):
     cmd_st = "ssh {0} rm -rf {1}".format(remote_host, ' '.join(remote_dirs))
     print cmd_st
     subprocess.Popen(cmd_st, shell=True,
                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout.read()
+
 
   @staticmethod
   def sync_input(local_dir, remote_host, remote_dir, pattern):
@@ -561,6 +575,7 @@ class RemoteResource(Resource):
     print cmd_st
     subprocess.Popen(cmd_st, shell=True,
                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout.read()
+
 
   @staticmethod
   def sync_output(local_dir, remote_host, remote_dir, pattern):
@@ -608,13 +623,13 @@ class LocalResource(Resource):
   # like the remote deployment counterpart.
   def deploy_and_wait(self, session_dir, deployment_id, input_data, param_dict):
     deployment_dir            = self.get_deployment_name(deployment_id)
-    abs_deployment_dir        = os.path.join(Resource.local_prefix, Resource.io_dir,  
+    abs_deployment_dir        = os.path.join(Resource.local_prefix, Resource.io_dir,
                                              session_dir, deployment_dir)
 
     if not os.path.exists(abs_deployment_dir):
       os.makedirs(abs_deployment_dir)
 
-    input_data_fn             = os.path.join(abs_deployment_dir, 'data.txt')
+    input_data_fn = os.path.join(abs_deployment_dir, 'data.txt')
     with open(input_data_fn, 'w') as ofp:
       ofp.write(json.dumps(input_data))
 
@@ -625,12 +640,10 @@ class LocalResource(Resource):
     
     
     for d in input_data:
-      #gen_name  = d.get('generator') or d.get('simulator') or d.get('docker')
       gen_class = Resource.generator_options[d['generator']]
       gen_obj = gen_class()
       gen_obj.preprocess(dict(d.items() + path_dict.items()))
-      #print 'input_dict:', d
-    #print 'input_data:', input_data
+
     self.execute_jobs_parallel(input_data, path_dict)
     conn = psycopg2.connect(database=param_dict['dbname'])
 
@@ -659,6 +672,7 @@ if __name__ == '__main__':
                  "res_config_name": "",
                  "prefix": "",
                  "app_dir": "",
+                 "generators": "",
                  "app_scriptdir": "scripts",
                }
 
@@ -666,8 +680,9 @@ if __name__ == '__main__':
 
   with open(param_dict['res_config_fn'], 'r') as ifp:
     configs = eval(ifp.read())
-    app_path = os.path.join(param_dict['prefix'], configs['app_dir'])
-    Resource.generator_options = generator.get_gen_opts(app_path, configs['generators'])
+    app_path = os.path.join(param_dict['prefix'], param_dict['app_dir'])
+    # TODO BUG
+    Resource.generator_options = generator.get_gen_opts(app_path, generators)
 
   if param_dict['mode'] == 'execute':
     with open(param_dict['jobdata'], 'r') as ifp:

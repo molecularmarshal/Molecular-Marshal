@@ -24,11 +24,12 @@ import psycopg2.extras
 
 class Pi_Controller(controller.Controller):
   app_param_dict = {
-    'dbname':               'testdb_pi',
-    'dbdir':                'database',
-    'app_prefix':           os.path.join(os.getenv('BIGDIGSCIPREFIX'), 'apps/pi_mc'),
+    'dbname':              'testdb_pi',
+    'dbdir':               'database',
+    'local_prefix':        os.getenv('BIGDIGSCIPREFIX'),
+    'app_prefix':          'apps/pi_mc',
     'app_scriptdir':       'scripts',
-    'mode':                 '',
+    'mode':                '',
   }
   
   app_db_files = ['schema.sql']
@@ -47,6 +48,7 @@ class Pi_Controller(controller.Controller):
   def setup(self):
     self.quit_everything()
     l = []
+    print "SETTING UP WORKER"
     #l.append({'hostname':'localhost', 'num_workers': 3})
     l.append({'res_name':'DummyResource', 'num_workers': 1})
     self.setup_workers(l)

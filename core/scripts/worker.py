@@ -56,7 +56,6 @@ class Worker():
     with open(self.param_dict['conf'], 'r') as ifp:
         self.param_dict['configs'] = eval(ifp.read())
     
-    print self.param_dict
     app_path = os.path.join(os.getenv('BIGDIGSCIPREFIX'),
                             self.param_dict['configs']['app_dir'])
 
@@ -73,9 +72,6 @@ class Worker():
     self.resource = res_class(self.param_dict.get('user'),
                               res_configs,
                               self.param_dict['worker_id'])
-
-
-    print self.resource
 
     proc_id = os.getpid();
     conn = psycopg2.connect(database=self.param_dict['dbname'])

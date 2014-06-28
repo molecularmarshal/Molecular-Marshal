@@ -164,7 +164,8 @@ class Controller(object):
   # make sure that the corresponding remote resource has up-to-date scripts
   def prepare_resource(self, res_configs):
     if res_configs['res_name'] != 'localhost':
-      app_path = self.param_dict['app_prefix']
+      app_path = os.path.join(self.param_dict['local_prefix'],
+                              self.param_dict['app_prefix'])
       res_class = resources.get_res_class(app_path, res_configs)
       res_paths = res_class.get_paths()
       remote_prefix = res_paths['resource_prefix']
@@ -172,11 +173,14 @@ class Controller(object):
                              remote_prefix, 
                              os.getenv('BIGDIGSCIPREFIX'),
                              self.param_dict['core_scriptdir'])
+      
+      app_script_prefix = os.path.join(self.param_dict['app_prefix'],
+                                       self.param_dict['app_scriptdir'])
 
       res_class.sync_scripts(res_class.gateway_host, 
                              remote_prefix, 
-                             self.param_dict['app_prefix'],
-                             self.param_dict['app_scriptdir'])
+                             self.param_dict['local_prefix'],
+                             app_script_prefix)
 
 
 
