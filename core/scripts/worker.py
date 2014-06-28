@@ -43,6 +43,7 @@ class Worker():
     'qname'            : "normal",
     'res_config_name'  : "default",
     'conf'             : "",
+    'app_scriptdir'    : 'scripts',
   }
 
   # Worker initilization
@@ -56,18 +57,17 @@ class Worker():
         self.param_dict['configs'] = eval(ifp.read())
     
     print self.param_dict
-    script_path = os.path.join(os.get_environ('BIGDIGSCIPREFIX'),
-                               self.param_dict['configs']['app_dir'])
+    app_path = os.path.join(os.getenv('BIGDIGSCIPREFIX'),
+                            self.param_dict['configs']['app_dir'])
 
     resources.Resource.generator_options = generator.get_gen_opts(
-                                           script_path,
+                                           app_path,
                                            self.param_dict['configs']['generators'])
 
     # resource lookup
     res_name = self.param_dict['res_name'] 
     res_configs = self.param_dict['configs']['resources'][res_name]
-
-    res_class = resources.get_res_class(res_configs)
+    res_class = resources.get_res_class(app_path, res_configs)
     res_configs['res_name'] = res_name
 
     self.resource = res_class(self.param_dict.get('user'),
@@ -98,26 +98,25 @@ class Worker():
     print self.param_dict
 
   def process_work(self):
-   print "start processing work"
+    print "start processing work"
 
     try:
       gateway_host = self.resource.gateway_host or 'localhost'
     except:
       gateway_host = 'localhost'
 
-      
-    # session directory is named after the gateway host appended by a random string for uniqueness
+    print gateway_host 
+   # session directory is named after the gateway host appended by a random string for uniqueness
     session_dir    = 's_' + gateway_host + '_' + str(uuid.uuid4())[0:8]
 
     while True:
       if self.resource.check_deployments():
-
+        
         conn = psycopg2.connect(database=self.param_dict['dbname'])
         cur = conn.cursor()
         deployment_size = self.resource.job_concurrency * self.param_dict['avg_seq_jobs']
         sql_st = 'select jobqueue_dequeue({0})'.format(deployment_size)
         cur.execute(sql_st)
-
         #print str(self.param_dict)
         #print str(session_dir)
         #print resources.LocalResource.get_paths()

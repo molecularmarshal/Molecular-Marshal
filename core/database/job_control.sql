@@ -101,7 +101,13 @@ $$ language plpgsql;
 
 drop function if exists jobqueue_insert(bigint, text);
 create or replace function jobqueue_insert(j_id bigint, json_st text)
-returns int as $statement_timestamp());
+returns int as $$
+declare
+  max_id    int;
+begin
+  lock table JobQueue in exclusive mode;
+  insert into JobQueue (data, t_queue)
+  values (json_st, statement_timestamp());
 
   select max(jq_entry_id) into max_id from JobQueue;
 

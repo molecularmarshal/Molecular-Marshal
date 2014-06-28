@@ -24,7 +24,8 @@ import psycopg2
 import math
 
 from multiprocessing import Process
-  
+import resources
+
 # Generic controller class
 class Controller(object): 
   sharedacc = 'webapp'
@@ -33,15 +34,16 @@ class Controller(object):
 
   # default parameter dictionary for command line arguments
   param_dict = {
-    'mode'        : '',
-    'dbdir'       : 'database',
-    'dbname'      : ('testdb',
-                     'name of the database'),
-    'dbhost'      : 'localhost',
-    'dbuser'      : os.getenv('USER'),
-    'pythonpaths' : os.getenv('PYTHONPATH') or '',
-    'worker'      : 'worker.py',
-    'conf'        : 'configs.txt',
+    'mode'            : '',
+    'core_dbdir'      : 'core/database',
+    'core_scriptdir'  : 'core/scripts',
+    'dbname'          : ('testdb',
+                         'name of the database'),
+    'dbhost'          : 'localhost',
+    'dbuser'          : os.getenv('USER'),
+    'pythonpaths'     : os.getenv('PYTHONPATH') or '',
+    'worker'          : 'worker.py',
+    'conf'            : 'configs.txt',
   }
  
   # generic __init__ method which parses command line parameters
@@ -104,12 +106,11 @@ class Controller(object):
       bigdigsci_prefix = os.getenv('HOME')
 
     dbdir  = os.path.join(bigdigsci_prefix,
-                          self.param_dict['app_dir'],
+                          self.param_dict['app_prefix'],
                           self.param_dict['dbdir'])
 
     core_dbdir = os.path.join(bigdigsci_prefix,
-                              self.param_dict['bigdigsci_dir'],
-                              self.param_dict['dbdir'])
+                              self.param_dict['core_dbdir'])
 
     p = my_utils.run_cmd("dropdb {0}".format(dbname))
     p = my_utils.run_cmd("createdb {0}".format(dbname))
@@ -141,7 +142,7 @@ class Controller(object):
   # according to the parameters specified in self.param_dict
   def start_workers(self, conn, res_name, worker_id, worker_name):
     worker  = os.path.join(os.getenv('BIGDIGSCIPREFIX'), 
-                           'bigdigsci/core/scripts', 
+                           self.param_dict['core_scriptdir'],
                            self.param_dict['worker'])
     
     #print os.environ
@@ -159,7 +160,26 @@ class Controller(object):
                  """python """ + worker + """ """ + args
   
     my_utils.run_cmd(template.format(**self.param_dict))
-  
+ 
+  # make sure that the corresponding remote resource has up-to-date scripts
+  def prepare_resource(self, res_configs):
+    if res_configs['res_name'] != 'localhost':
+      app_path = self.param_dict['app_prefix']
+      res_class = resources.get_res_class(app_path, res_configs)
+      res_paths = res_class.get_paths()
+      remote_prefix = res_paths['resource_prefix']
+      res_class.sync_scripts(res_class.gateway_host, 
+                             remote_prefix, 
+                             os.getenv('BIGDIGSCIPREFIX'),
+                             self.param_dict['core_scriptdir'])
+
+      res_class.sync_scripts(res_class.gateway_host, 
+                             remote_prefix, 
+                             self.param_dict['app_prefix'],
+                             self.param_dict['app_scriptdir'])
+
+
+
   # iterates through a list 'l' of workers and starts worker processes
   # there are three type of resources: localhost, localcluster-remotehost,
   # and remote-resource. For the first two, the worker screen session
@@ -170,9 +190,16 @@ class Controller(object):
     conn = psycopg2.connect(database=self.param_dict['dbname'])
     cur  = conn.cursor()
 
+    with open(self.param_dict['conf'], 'r') as ifp:
+      configs = eval(ifp.read())
+
     for d in l:
+      res_name = d['res_name']
+      res_configs = configs['resources'][res_name]
+      res_configs['res_name'] = res_name
+
+      self.prepare_resource(res_configs)
       for i in xrange(0,d['num_workers']):
-        res_name = d['res_name']
         cur.execute("select workers_insert('{0}');".format(res_name))
         worker_id = cur.fetchone()[0]
         worker_name = "{1}_worker_{0}".format(res_name,worker_id)
