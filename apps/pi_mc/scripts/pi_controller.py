@@ -48,7 +48,6 @@ class Pi_Controller(controller.Controller):
   def setup(self):
     self.quit_everything()
     l = []
-    print "SETTING UP WORKER"
     #l.append({'hostname':'localhost', 'num_workers': 3})
     l.append({'res_name':'DummyResource', 'num_workers': 1})
     self.setup_workers(l)

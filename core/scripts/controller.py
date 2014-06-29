@@ -57,7 +57,7 @@ class Controller(object):
 
   @staticmethod
   def get_job_dicts(default_dict, range_dicts):
-    if range_dicts == []:
+    if ange_dicts == []:
       return [default_dict]
 
     res = []
