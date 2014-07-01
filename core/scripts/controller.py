@@ -140,7 +140,7 @@ class Controller(object):
 
   # start a worker screen session (each worker screen session runs a worker process) 
   # according to the parameters specified in self.param_dict
-  def start_workers(self, conn, res_name, worker_id, worker_name):
+  def start_workers(self, conn, res_name, worker_id, worker_name, dep_config_name):
     worker  = os.path.join(os.getenv('BIGDIGSCIPREFIX'), 
                            self.param_dict['core_scriptdir'],
                            self.param_dict['worker'])
@@ -151,6 +151,7 @@ class Controller(object):
     args =       """--worker_name {0} """.format(worker_name)+\
                  """--worker_id {0} """.format(worker_id)+\
                  """--res_name {0} """.format(res_name)+\
+                 """--dep_config_name {0} """.format(dep_config_name)+\
                  """--dbname {dbname} --dbhost {dbhost} --dbuser {dbuser} --conf {conf}""".format(**self.param_dict)
   
     # start a screen here
@@ -162,14 +163,13 @@ class Controller(object):
     my_utils.run_cmd(template.format(**self.param_dict))
  
   # make sure that the corresponding remote resource has up-to-date scripts
-  def prepare_resource(self, res_configs):
+  def prepare_resource(self, res_configs, gateway_host):
     if res_configs['res_name'] != 'localhost':
       app_path = os.path.join(self.param_dict['local_prefix'],
                               self.param_dict['app_prefix'])
       res_class = resources.get_res_class(app_path, res_configs)
-      res_paths = res_class.get_paths()
-      remote_prefix = res_paths['resource_prefix']
-      res_class.sync_scripts(res_class.gateway_host, 
+      remote_prefix = res_configs['res_prefix']
+      res_class.sync_scripts(gateway_host, 
                              remote_prefix, 
                              os.getenv('BIGDIGSCIPREFIX'),
                              self.param_dict['core_scriptdir'])
@@ -177,11 +177,10 @@ class Controller(object):
       app_script_prefix = os.path.join(self.param_dict['app_prefix'],
                                        self.param_dict['app_scriptdir'])
 
-      res_class.sync_scripts(res_class.gateway_host, 
+      res_class.sync_scripts(gateway_host, 
                              remote_prefix, 
                              self.param_dict['local_prefix'],
                              app_script_prefix)
-
 
 
   # iterates through a list 'l' of workers and starts worker processes
@@ -196,20 +195,22 @@ class Controller(object):
 
     with open(self.param_dict['conf'], 'r') as ifp:
       configs = eval(ifp.read())
+    
+    gateway_host = configs['gateway_host']
 
     for d in l:
       res_name = d['res_name']
       res_configs = configs['resources'][res_name]
       res_configs['res_name'] = res_name
 
-      self.prepare_resource(res_configs)
+      self.prepare_resource(res_configs, gateway_host)
       for i in xrange(0,d['num_workers']):
         cur.execute("select workers_insert('{0}');".format(res_name))
         worker_id = cur.fetchone()[0]
         worker_name = "{1}_worker_{0}".format(res_name,worker_id)
-
+        
         # do block assignments here
-        self.start_workers(conn, res_name, worker_id, worker_name)
+        self.start_workers(conn, res_name, worker_id, worker_name, d['dep_config_name'])
 
     cur.close()
     conn.commit()

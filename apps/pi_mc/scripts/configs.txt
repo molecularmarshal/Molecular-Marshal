@@ -1,18 +1,20 @@
-{
-  "app_dir": "apps/pi_mc/",
-  "resources": 
-    {"DummyResource":
-      {"res_path":   "scripts/dummy_resource.py",
-       "res_class":  "DummyResource",
-       "res_host":   "dummy",
-       "res_prefix": "/home/dummy/bigdigsci_data",
-       "num_cores":  "1"
-      }
+{"app_dir": "apps/pi_mc/",
+ "gateway_host": "dummy",
+ "local_prefix":"bigdigsci_data",
+ "resources": 
+  {"DummyResource":
+    {"res_path":   "scripts/dummy_resource.py",
+     "res_class":  "DummyResource",
+     "res_host":   "dummy",
+     "res_prefix": "/home/dummy/bigdigsci_data",
+     "deployment_configs": "scripts/dep_configs.txt",
+     "io_dir": "resource_io",
     },
-  "generators": 
-    {"pi_estimator": 
-      {"gen_path":  "scripts/pi_estimator.py",
-       "gen_class": "PI_Estimator"
-      }
+  },
+ "generators": 
+  {"pi_estimator": 
+    {"gen_path":  "scripts/pi_estimator.py",
+     "gen_class": "PI_Estimator"
     }
+  }
 }

@@ -2,20 +2,17 @@ import resources
 import os
 
 class DummyResource(resources.RemoteResource):
-  gateway_host = "dummy" 
-  resource_prefix = "/home/dummy/bigdigsci_data" 
   
-  @staticmethod
-  def get_paths():
+  #TODO parse the config and dep_config and gen the dict
+  def get_paths(self):
     path_dict = \
       {
-       'io_dir':          resources.Resource.io_dir,
-       'resource_prefix': DummyResource.resource_prefix,
+       'io_dir':          self.io_dir, 
+       'resource_prefix': self.resource_prefix,
       }
     return path_dict
 
-  @staticmethod
-  def get_environ():
-    d = { "PYTHONPATH": [os.path.join(DummyResource.resource_prefix,
+  def get_environ(self):
+    d = { "PYTHONPATH": [os.path.join(self.resource_prefix,
                                       'core/scripts')]}
     return d

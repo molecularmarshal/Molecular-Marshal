@@ -1,0 +1,13 @@
+{"default": 
+  {"num_nodes": 1,
+   "job_concurrency": 12,   
+   "num_deployments": 10,    
+   "time_limit": "24:00:00", 
+   "qname": "normal",        
+   "sync_period": 100,
+  },
+ "customized": 
+  { "gpu": {"job_concurrency":  1, "num_deployments": 8},
+    "dev": {"job_concurrency":  1, "num_deployments": 1},
+  },
+}

@@ -48,24 +48,44 @@ def get_res_class(prefix, res_configs):
 
 class Resource(object):
 
-  generator_options = None
-
   __metaclass__ = ABCMeta
 
-  io_dir            = 'resource_io'
-  local_prefix      = os.path.join(os.getenv('HOME'), 'bigdigsci_data')
-  gateway_host      = None
+  #TODO put these params in the dummyresource: {}
+  #io_dir            = 'resource_io'
+  #local_prefix      = os.path.join(os.getenv('HOME'), 'bigdigsci_data')
+  #gateway_host      = None
 
   # Initialize resource configurations, e.g., #nodes per deployments, the name of the
   # job queue (if PBS), etc.
-  def __init__(self, user, res_configs, worker_id):
-    
-    self.worker_id = worker_id
-    self.deployment_id = 1
-    
-    self.res_configs     = res_configs
-    map(lambda x: setattr(self.__class__, *x), self.res_configs.items())
+  def __init__(self, user, configs, worker_id, res_name, gen_opts, dep_config_name, is_local=True):
+   
+    self.worker_id         = worker_id
+    self.deployment_id     = 0
+    self.generator_options = gen_opts
+    self.gateway_host      = configs['gateway_host']
+    self.res_configs       = configs['resources'][res_name]
+    self.dep_config_name   = dep_config_name
+    self.io_dir            = self.res_configs['io_dir']
+    self.res_host          = self.res_configs['res_host'] 
+    self.resource_prefix   = self.res_configs['res_prefix']
 
+    if is_local:
+        dep_config_path = os.path.join(os.getenv('BIGDIGSCIPREFIX'),
+                                       configs['app_dir'],
+                                       self.res_configs['deployment_configs'])
+    else :
+        dep_config_path = os.path.join(self.res_configs['res_prefix'],
+                                       configs['app_dir'],
+                                       self.res_configs['deployment_configs'])
+
+    dep_configs = Resource.parse_dep_config(dep_config_path)
+    #TODO
+    dep_config = dep_configs[dep_config_name]    
+    #TODO make the res_host and res_prefix which are inside resources : {} attribute of self
+    map(lambda (k, v): setattr(self, k, v), dep_config.items())
+    #TODO 
+    self.local_prefix      = os.path.join(os.getenv('HOME'), 
+                                          configs['local_prefix'])
     try:
       gateway_host = self.gateway_host or self.res_name or 'localhost'
     except:
@@ -79,6 +99,10 @@ class Resource(object):
     self.sync_info_fn        = os.path.join('/tmp', gateway_host + '_' + str(uuid.uuid4()))
     # open and close the file to change the modified time
     open(self.sync_info_fn, 'w').close()
+    print "++++++++++++++++++SELF.IO_DIR+++++++++++++++++++++++++++"
+    print self.io_dir
+    print "++++++++++++++++++SELF.SYNC_PERIOD++++++++++++++++++++++"
+    print self.sync_period
 
   # deployment id counter
   def get_next_deployment_id(self):
@@ -89,7 +113,6 @@ class Resource(object):
   # convert the sync period in secs into datetime.timedelta
   def get_sync_period(self):
     return datetime.timedelta(0, self.sync_period)
-
 
   # take an integer i; convert it to a string of a 6-digit hex; put a dash '-' every two characters
   # and put a prefix in front.
@@ -102,12 +125,27 @@ class Resource(object):
   @staticmethod
   def get_deployment_name(deployment_id):
     return Resource.int2dirname('d_', deployment_id)
+  
+  # parse the dep_config.txt
+  @staticmethod
+  def parse_dep_config(dep_config_path):
+    with open(dep_config_path, 'r') as ifp:
+      dep_configs = eval(ifp.read())
+
+    default_config = dep_configs['default']
+    custom_configs = dep_configs['customized']
+
+    configs = dict(map(lambda (k,v): (k,dict(default_config.items() + v.items())), 
+               custom_configs.items()))
+
+    configs['default'] = default_config
+    return configs
 
 
   # get the resource config dictionary by modifying the default resource config dictionary
   # to get appropriate settings for MPI, GPU, normal resource configurations.
   def get_res_config(self, config_name, **kwargs):
-    res_config = self.__class__.res_configs.get(config_name)
+    res_config = self.res_configs.get(config_name)
     if not res_config:
       return dict(self.default_config.items() + kwargs.items())
     return dict(self.default_config.items() + res_config.items() + kwargs.items())
@@ -133,8 +171,7 @@ class Resource(object):
     
     return len(self.process_pool) < self.num_deployments
 
-  @staticmethod
-  def get_environ():
+  def get_environ(self):
     raise NotImplementedError( "Should have implemented this" )
 
   @staticmethod
@@ -169,7 +206,7 @@ class Resource(object):
 
       d['dbname']  = param_dict['dbname']
 
-      local_paths = LocalResource.get_paths()
+      local_paths = self.get_paths()
 
       d['output_prefix']   = os.path.join(local_paths['resource_prefix'],
                                           local_paths['io_dir'],
@@ -205,15 +242,13 @@ class Resource(object):
     conn.close()
     st_io.close()
 
-  @staticmethod
-  def get_paths():
+  def get_paths(self):
     raise NotImplementedError( "Should have implemented this" )
 
   # Job loading method:
   #   (1) Iterate through a list of job dictionaries to call the appropriate load function
   #       according to the generator
-  @staticmethod
-  def load(conn, job_data, local_paths):
+  def load(self, conn, job_data, local_paths):
     print "load function" 
     if not isinstance(job_data, list):
       job_data = [job_data]
@@ -221,12 +256,12 @@ class Resource(object):
     st_io = cStringIO.StringIO()
     for d in job_data:
       print 'loading: ', d['jq_entry_id']
-      result_dir = os.path.join(Resource.local_prefix, Resource.io_dir, 
+      result_dir = os.path.join(self.local_prefix, self.io_dir, 
                                 d['session_dir'], d['deployment_dir'], d['run_dir'])
       print 'from: ', result_dir
       gen_name   = d.get('generator') or d.get('simulator') or d.get('docker')   
-      print Resource.generator_options
-      gen_obj = Resource.generator_options[gen_name]()
+      print self.generator_options
+      gen_obj = self.generator_options[gen_name]()
 
       ret = gen_obj.load(conn, result_dir, d, local_paths)
       #try:
@@ -256,7 +291,7 @@ class Resource(object):
   #   (2) if remote, ssh into the remote resource and remove the job running directory there as well
 
   def cleanup(self, job_data, local_paths):
-    path_dict = self.__class__.get_paths()
+    path_dict = self.get_paths()
 
     if not isinstance(job_data, list):
       job_data = [job_data]
@@ -264,7 +299,7 @@ class Resource(object):
     l = []
     for d in job_data:
       session_dir = d['session_dir']
-      result_dir = os.path.join(Resource.local_prefix, Resource.io_dir, session_dir, d['deployment_dir'], d['run_dir'])
+      result_dir = os.path.join(self.local_prefix, self.io_dir, session_dir, d['deployment_dir'], d['run_dir'])
       try:
         shutil.rmtree(result_dir)
       except Exception as e:
@@ -278,8 +313,6 @@ class Resource(object):
                                        d['run_dir'])
       l.append(result_dir_remote)                                       
     if self.gateway_host:
-      # TODO ++++++++++++++++++++++++++++++++++++++++++ 
-      #Resource.remove_remote_dirs(self.gateway_host, l)
       self.remove_remote_dirs(self.gateway_host, l)
       
 
@@ -304,8 +337,6 @@ class Resource(object):
     device_pool = dict([(i,None) for i in range(self.job_concurrency)])
 
     for d in job_data:
-      print "++++++++++++++++++++++"
-      print d
       device_id = Resource.wait_avail_device(device_pool)
   
       p = Process(target=self.execute_job, args=(d, path_dict, device_id))
@@ -334,17 +365,10 @@ class Resource(object):
       except:
         num_cores_per_node = 1
 
-      print "execute_job++++++++++++++++++++++"
-      print input_dict
       input_dict['num_cores_per_node'] = num_cores_per_node
       input_dict['device_id'] = device_id
-      gen_name  = input_dict.get('generator') or input_dict.get('simulator') or input_dict.get('docker')
+      gen_name  = input_dict.get('generator')
 
-      print "gen_name++++++++++++++++++++++"
-      print gen_name
-
-      print "generator_opts in Resource++++++++++++++++++++++"
-      print Resource.generator_options
 
       #gen_obj = Resource.generator_options[gen_name]()
       gen_obj = self.generator_options[gen_name]()
@@ -375,7 +399,6 @@ class Resource(object):
           sys.stdout = ofp
           sys.stderr = ofp
 
-        #print "THIS IS RUN_DICT: " + str(run_dict)
         out_dict = gen_obj.run(output_prefix, run_dict)
         if self.__class__ != LocalResource:
           # reset stdout and stderr to original values
@@ -391,11 +414,6 @@ class Resource(object):
     return out_data
 
 class RemoteResource(Resource):
- 
-  job_concurrency = 1
-  num_deployments = 30
-  # TODO 
-  sync_period = 100 
 
   # RemoteResource
   # Job deployment method (for remote resources)
@@ -412,9 +430,9 @@ class RemoteResource(Resource):
     output_data = []
     for d in job_dict_list:
       gen_name  = d.get('generator')
-      gen_class = Resource.generator_options[gen_name]
+      gen_class = self.generator_options[gen_name]
       gen_obj = gen_class()
-      gen_obj.preprocess(dict(d.items()+ LocalResource.get_paths().items()))
+      gen_obj.preprocess(dict(d.items()+ self.get_paths().items()))
       output_data.append((d['run_dir'],gen_obj.get_output_fns(d)))
       d['user'] = self.user
     print 'job_dict_list:', len(job_dict_list), ' jobs'
@@ -424,11 +442,11 @@ class RemoteResource(Resource):
         if v is not None:
           wait_list.append((run_dir, v))
 
-    path_dict     = self.__class__.get_paths()
+    path_dict     = self.get_paths()
     remote_prefix = path_dict['resource_prefix']
-    sync_dir      = os.path.join(Resource.io_dir, session_dir)
+    sync_dir      = os.path.join(self.io_dir, session_dir)
     try:
-      os.makedirs(os.path.join(Resource.local_prefix,  sync_dir))
+      os.makedirs(os.path.join(self.local_prefix,  sync_dir))
     except:
       pass
     
@@ -438,9 +456,8 @@ class RemoteResource(Resource):
     # cluster
     conf = param_dict['conf']
     worker_id = param_dict['worker_id']
-    self.submit(session_dir, deployment_dir, job_dict_list, app_dir, conf, worker_id)
+    self.submit(session_dir, deployment_dir, job_dict_list, app_dir, conf, worker_id, self.dep_config_name)
     
-    #print 'output files: ', wait_list
     while wait_list:
       time.sleep(60)
 
@@ -449,14 +466,11 @@ class RemoteResource(Resource):
       if t_diff > self.get_sync_period():
         self.set_last_sync()
         print ts
-        self.__class__.sync_output_dirs(self.__class__.gateway_host, [(sync_dir, None)], Resource.local_prefix, remote_prefix)
+        self.__class__.sync_output_dirs(self.gateway_host, [(sync_dir, None)], self.local_prefix, remote_prefix)
         self.set_last_sync()
-        #print datetime.datetime.now()
-        #print Resource.local_prefix
-        #print sync_dir
 
       wait_list = [(run_dir,fn) for (run_dir,fn) in wait_list
-                   if not os.path.isfile(os.path.join(Resource.local_prefix, sync_dir, deployment_dir, run_dir, fn))]
+                   if not os.path.isfile(os.path.join(self.local_prefix, sync_dir, deployment_dir, run_dir, fn))]
       if wait_list:
         print deployment_dir, 'is still waiting for', zip(*wait_list)[0]
       else:
@@ -475,36 +489,36 @@ class RemoteResource(Resource):
 
     conn.close()
     
-  def compose_exec_cmd(self, compute_node, input_data_fn_remote, res_config_fn_remote, app_dir, conf, worker_id):
+  def compose_exec_cmd(self, compute_node, input_data_fn_remote, res_config_fn_remote, app_dir, conf, worker_id, dep_config_name):
     env_st = Resource.print_environ(self.get_environ())
     script_path = os.path.join(self.resource_prefix, 'core/scripts')
-    cmd_st = "ssh {0} env {1} python {2}/resources.py --resource {3} --mode execute --jobdata {4} --prefix {5} --res_config_fn {6} --app_dir {7} --conf {8} --worker_id {9}".format(
+    cmd_st = "ssh {0} env {1} python {2}/resources.py --resource {3} --mode execute --jobdata {4} --prefix {5} --res_config_fn {6} --app_dir {7} --conf {8} --worker_id {9} --dep_config_name {10}".format(
             compute_node, env_st, script_path,
             self.gateway_host, input_data_fn_remote, 
             self.resource_prefix, res_config_fn_remote,
-            app_dir, conf, worker_id)
+            app_dir, conf, worker_id, dep_config_name)
 
     return cmd_st
 
-  def submit(self, session_dir, deployment_dir, input_data, app_dir, conf, worker_id):
+  def submit(self, session_dir, deployment_dir, input_data, app_dir, conf, worker_id, dep_config_name):
     sync_list = []
     for input_dict in input_data:
       input_dict['session_dir'] = session_dir
       gen_name  = input_dict.get('generator')
-      gen_class = Resource.generator_options[gen_name]
+      gen_class = self.generator_options[gen_name]
       gen_obj = gen_class()
       # TODO sync scripts when initializing worker 
       # sync_list = sync_list + gen_obj.get_sync_info(input_dict)
 
     sync_list = list(set(sync_list))
 
-    path_dict            = self.__class__.get_paths()
-    session_dir          = os.path.join(Resource.io_dir, session_dir)
+    path_dict            = self.get_paths()
+    session_dir          = os.path.join(self.io_dir, session_dir)
     remote_prefix        = path_dict['resource_prefix']
     uid                  = 'job_' + str(uuid.uuid4())
     
     # local and remote path for input data sync
-    deployment_path        = os.path.join(Resource.local_prefix, session_dir, 
+    deployment_path        = os.path.join(self.local_prefix, session_dir, 
                                           deployment_dir)
     deployment_path_remote = os.path.join(remote_prefix, session_dir, deployment_dir)
     
@@ -519,11 +533,11 @@ class RemoteResource(Resource):
     # if there is no available compute nodes, gateway_host will be applied to 
     # conducting computing
     try:
-      node_list            = self.__class__.compute_nodes
+      node_list            = self.compute_nodes
       num_nodes            = len(node_list)
       compute_node         = node_list[0]
     except:
-      compute_node = self.__class__.gateway_host
+      compute_node = self.gateway_host
     
     os.makedirs(deployment_path)
 
@@ -533,16 +547,11 @@ class RemoteResource(Resource):
     with open(res_config_fn, 'w') as ofp:
       ofp.write(json.dumps(self.res_configs))
 
-
-    #print 'session_dir:', session_dir
-    #print 'deployment_dir:', deployment_dir
-    #print 'local_prefix:', Resource.local_prefix
-
     # sync the input data
-    self.__class__.sync_input_dirs(self.__class__.gateway_host, 
+    self.__class__.sync_input_dirs(self.gateway_host, 
                                      sync_list + [(os.path.join(session_dir, deployment_dir),'*')], 
-                                     Resource.local_prefix, remote_prefix)
-    cmd_st = self.compose_exec_cmd(compute_node, input_data_fn_remote, res_config_fn_remote, app_dir, conf, worker_id)
+                                     self.local_prefix, remote_prefix)
+    cmd_st = self.compose_exec_cmd(compute_node, input_data_fn_remote, res_config_fn_remote, app_dir, conf, worker_id, dep_config_name)
     print cmd_st
     subprocess.Popen(cmd_st,
                      shell=True, stdout=subprocess.PIPE,
@@ -553,8 +562,6 @@ class RemoteResource(Resource):
   def sync_scripts(remote_host, remote_prefix, local_prefix, script_dir):
     local_dir  = os.path.join(local_prefix, script_dir)
     remote_dir = os.path.join(remote_prefix, script_dir)
-    print local_dir
-    print remote_dir
     RemoteResource.sync_input(local_dir, remote_host, remote_dir, '*')
 
 
@@ -619,18 +626,17 @@ class LocalResource(Resource):
                      'job_concurrency': 1,
                      'num_deployments': 30,
                    }
-
+  # TODO rename res_configs as deployment_configs  
   res_configs = { 'gpu': {'job_concurrency':  1, 'num_deployments': 8},
                   'dev': {'job_concurrency':  1, 'num_deployments': 1},
                 }
   
-  @staticmethod
-  def get_paths():
+  def get_paths(self):
     path_dict = \
       {
-       'local_prefix':    Resource.local_prefix,
-       'io_dir':          Resource.io_dir,
-       'resource_prefix': Resource.local_prefix,
+       'local_prefix':    self.local_prefix,
+       'io_dir':          self.io_dir,
+       'resource_prefix': self.local_prefix,
        'template_prefix': os.path.join('/home/{0}'.format(os.environ['USER']), '{0}/mddb/templates'),
        'template_link':   os.path.join('/home/{0}'.format(os.environ['USER']), '{0}/mddb/templates'),
       }
@@ -654,13 +660,13 @@ class LocalResource(Resource):
       ofp.write(json.dumps(input_data))
 
 
-    path_dict = LocalResource.get_paths()
+    path_dict = self.get_paths()
     path_dict['template_prefix'] = path_dict['template_prefix'].format(self.user)
     path_dict['template_link']   = path_dict['template_link'].format(self.user)
     
     
     for d in input_data:
-      gen_class = Resource.generator_options[d['generator']]
+      gen_class = self.generator_options[d['generator']]
       gen_obj = gen_class()
       gen_obj.preprocess(dict(d.items() + path_dict.items()))
 
@@ -679,8 +685,7 @@ class LocalResource(Resource):
 
     #self.cleanup(input_data, LocalResource.get_paths())
 
-  @staticmethod
-  def get_environ():
+  def get_environ(self):
     d = { "PYTHONPATH": ["/usr/bin/python2.7"],}
     return d
 
@@ -694,6 +699,7 @@ if __name__ == '__main__':
                  "conf": "configs.txt",
                  "app_scriptdir": "scripts",
                  "worker_id": "",
+                 "dep_config_name": "",
                }
 
   param_dict = param_dict_parser.parse(param_dict)
@@ -708,8 +714,6 @@ if __name__ == '__main__':
     with open(conf_fn_path, 'r') as ifp:
       configs = eval(ifp.read()) 
 
-    Resource.generator_options = generator.get_gen_opts(app_path, configs['generators'])
-
   if param_dict['mode'] == 'execute':
     # Get the input data by reading the input_fn_remote 
     with open(param_dict['jobdata'], 'r') as ifp:
@@ -720,22 +724,16 @@ if __name__ == '__main__':
 
     res_name = remote_res_configs['res_name']
     res_configs = configs['resources'][res_name]
-    print "++++++++++++++++++++++"
-    print res_configs
     res_class = get_res_class(app_path, res_configs) 
-    res_configs['res_name'] = res_name
     res_obj = res_class(param_dict.get('user'),
-                        res_configs,
-                        param_dict['worker_id'])
-    print "res_obj options ++++++++++++++++++++++++"
-    res_obj.generator_options = Resource.generator_options
-    print res_obj.generator_options
-    print "resource options +++++++++++++++++++++"
-    print Resource.generator_options
-    res_paths = res_obj.__class__.get_paths()
-    # print 'res_paths', res_paths
-    print "++++++++++++++++++++++"
-    print data
+                        configs,
+                        param_dict['worker_id'],
+                        res_name,
+                        generator.get_gen_opts(app_path, configs['generators']),
+                        param_dict['dep_config_name'],
+                        False)
+
+    res_paths = res_obj.get_paths()
     res_obj.execute_jobs_parallel(data, res_paths)
   else:
     test_dockers()

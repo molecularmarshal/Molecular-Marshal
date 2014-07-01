@@ -30,6 +30,7 @@ class Pi_Controller(controller.Controller):
     'app_prefix':          'apps/pi_mc',
     'app_scriptdir':       'scripts',
     'mode':                '',
+    'dep_name':            'default',
   }
   
   app_db_files = ['schema.sql']
@@ -49,7 +50,10 @@ class Pi_Controller(controller.Controller):
     self.quit_everything()
     l = []
     #l.append({'hostname':'localhost', 'num_workers': 3})
-    l.append({'res_name':'DummyResource', 'num_workers': 1})
+    l.append({'res_name':'DummyResource', 
+              'num_workers': 1,
+              'dep_config_name': self.param_dict['dep_name'],
+            })
     self.setup_workers(l)
 
 

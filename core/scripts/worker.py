@@ -44,6 +44,7 @@ class Worker():
     'res_config_name'  : "default",
     'conf'             : "",
     'app_scriptdir'    : 'scripts',
+    'dep_config_name'  : 'default',
   }
 
   # Worker initilization
@@ -55,14 +56,13 @@ class Worker():
 
     with open(self.param_dict['conf'], 'r') as ifp:
         self.param_dict['configs'] = eval(ifp.read())
-    
+
     app_path = os.path.join(os.getenv('BIGDIGSCIPREFIX'),
                             self.param_dict['configs']['app_dir'])
 
-    resources.Resource.generator_options = generator.get_gen_opts(
-                                           app_path,
-                                           self.param_dict['configs']['generators'])
-
+    generator_options = generator.get_gen_opts( app_path,
+                                                self.param_dict['configs']['generators'])
+    
     # resource lookup
     res_name = self.param_dict['res_name'] 
     res_configs = self.param_dict['configs']['resources'][res_name]
@@ -70,8 +70,11 @@ class Worker():
     res_configs['res_name'] = res_name
 
     self.resource = res_class(self.param_dict.get('user'),
-                              res_configs,
-                              self.param_dict['worker_id'])
+                              self.param_dict['configs'],
+                              self.param_dict['worker_id'],
+                              res_name,
+                              generator_options,
+                              self.param_dict['dep_config_name'])
 
     proc_id = os.getpid();
     conn = psycopg2.connect(database=self.param_dict['dbname'])
@@ -113,9 +116,6 @@ class Worker():
         deployment_size = self.resource.job_concurrency * self.param_dict['avg_seq_jobs']
         sql_st = 'select jobqueue_dequeue({0})'.format(deployment_size)
         cur.execute(sql_st)
-        #print str(self.param_dict)
-        #print str(session_dir)
-        #print resources.LocalResource.get_paths()
 
         try:
           res = cur.fetchone()[0]
