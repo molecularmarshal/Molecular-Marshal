@@ -50,7 +50,7 @@ class Pi_Controller(controller.Controller):
     self.quit_everything()
     l = []
     #l.append({'hostname':'localhost', 'num_workers': 3})
-    l.append({'res_name':'DummyResource', 
+    l.append({'res_name':'StampedeResource', 
               'num_workers': 1,
               'dep_config_name': self.param_dict['dep_name'],
             })

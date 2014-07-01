@@ -98,14 +98,13 @@ class Worker():
 
   def process_work(self):
     print "start processing work"
-
     try:
       gateway_host = self.resource.gateway_host or 'localhost'
     except:
       gateway_host = 'localhost'
 
     print gateway_host 
-   # session directory is named after the gateway host appended by a random string for uniqueness
+    # session directory is named after the gateway host appended by a random string for uniqueness
     session_dir    = 's_' + gateway_host + '_' + str(uuid.uuid4())[0:8]
 
     while True:

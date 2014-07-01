@@ -1,15 +1,22 @@
 {"app_dir": "apps/pi_mc/",
- "gateway_host": "dummy",
+ "gateway_host": "stampede",
  "local_prefix":"bigdigsci_data",
  "resources": 
-  {"DummyResource":
+  {"StampedeResource":
+    {"res_class":  "StampedeResource",
+     "res_host":   "stampede",
+     "res_prefix": "/scratch/01654/twoolf/projects/bigdigsci_data",
+     "deployment_configs": "scripts/dep_configs.txt",
+     "io_dir": "resource_io",
+    },
+   "DummyResource":
     {"res_path":   "scripts/dummy_resource.py",
      "res_class":  "DummyResource",
      "res_host":   "dummy",
      "res_prefix": "/home/dummy/bigdigsci_data",
      "deployment_configs": "scripts/dep_configs.txt",
      "io_dir": "resource_io",
-    },
+     },
   },
  "generators": 
   {"pi_estimator": 

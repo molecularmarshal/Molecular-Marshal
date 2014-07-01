@@ -50,11 +50,6 @@ class Resource(object):
 
   __metaclass__ = ABCMeta
 
-  #TODO put these params in the dummyresource: {}
-  #io_dir            = 'resource_io'
-  #local_prefix      = os.path.join(os.getenv('HOME'), 'bigdigsci_data')
-  #gateway_host      = None
-
   # Initialize resource configurations, e.g., #nodes per deployments, the name of the
   # job queue (if PBS), etc.
   def __init__(self, user, configs, worker_id, res_name, gen_opts, dep_config_name, is_local=True):
@@ -79,11 +74,8 @@ class Resource(object):
                                        self.res_configs['deployment_configs'])
 
     dep_configs = Resource.parse_dep_config(dep_config_path)
-    #TODO
     dep_config = dep_configs[dep_config_name]    
-    #TODO make the res_host and res_prefix which are inside resources : {} attribute of self
     map(lambda (k, v): setattr(self, k, v), dep_config.items())
-    #TODO 
     self.local_prefix      = os.path.join(os.getenv('HOME'), 
                                           configs['local_prefix'])
     try:
@@ -450,13 +442,11 @@ class RemoteResource(Resource):
     except:
       pass
     
-    # TODO pass the app_dir 
     app_dir = param_dict['configs']['app_dir']
-    # TODO we assume that the config.txt is in the same directory on the remote
-    # cluster
     conf = param_dict['conf']
     worker_id = param_dict['worker_id']
-    self.submit(session_dir, deployment_dir, job_dict_list, app_dir, conf, worker_id, self.dep_config_name)
+    #TODO
+    self.submit(session_dir, deployment_dir, deployment_id, job_dict_list, app_dir, conf, worker_id, self.dep_config_name)
     
     while wait_list:
       time.sleep(60)
@@ -500,7 +490,7 @@ class RemoteResource(Resource):
 
     return cmd_st
 
-  def submit(self, session_dir, deployment_dir, input_data, app_dir, conf, worker_id, dep_config_name):
+  def submit(self, session_dir, deployment_dir, deployment_id, input_data, app_dir, conf, worker_id, dep_config_name):
     sync_list = []
     for input_dict in input_data:
       input_dict['session_dir'] = session_dir
@@ -626,7 +616,6 @@ class LocalResource(Resource):
                      'job_concurrency': 1,
                      'num_deployments': 30,
                    }
-  # TODO rename res_configs as deployment_configs  
   res_configs = { 'gpu': {'job_concurrency':  1, 'num_deployments': 8},
                   'dev': {'job_concurrency':  1, 'num_deployments': 1},
                 }
@@ -689,6 +678,125 @@ class LocalResource(Resource):
     d = { "PYTHONPATH": ["/usr/bin/python2.7"],}
     return d
 
+class PBSResource(RemoteResource):
+
+  # slightly different from the base submit function, this one will compose a job script   
+  def submit(self, session_dir, deployment_dir, deployment_id, input_data, app_dir, conf, worker_id, dep_config_name):
+    sync_list = []
+    for input_dict in input_data:
+      input_dict['session_dir'] = session_dir
+      gen_name  = input_dict.get('generator')
+      gen_class = self.generator_options[gen_name]
+      gen_obj = gen_class()
+      # TODO sync scripts when initializing worker 
+      # sync_list = sync_list + gen_obj.get_sync_info(input_dict)
+
+    sync_list = list(set(sync_list))
+
+    path_dict            = self.get_paths()
+    session_dir          = os.path.join(self.io_dir, session_dir)
+    remote_prefix        = path_dict['resource_prefix']
+    uid                  = 'job_' + str(uuid.uuid4())
+    
+    # local and remote path for input data sync
+    deployment_path        = os.path.join(self.local_prefix, session_dir, 
+                                          deployment_dir)
+    deployment_path_remote = os.path.join(remote_prefix, session_dir, deployment_dir)
+    
+    # file stored input data  
+    input_data_fn          = os.path.join(deployment_path, uid)
+    input_data_fn_remote   = os.path.join(deployment_path_remote, uid)
+   
+    # file stored resource configuration file
+    res_config_fn          = os.path.join(deployment_path, uid + '_res.txt')
+    res_config_fn_remote   = os.path.join(deployment_path_remote, uid + '_res.txt')
+   
+    # file stored the PBS script
+    job_script_fn          = os.path.join(deployment_path, uid + '_script.txt') 
+    job_script_fn_remote   = os.path.join(deployment_path_remote, uid + '_script.txt')
+
+    # if there is no available compute nodes, gateway_host will be applied to 
+    # conducting computing
+    try:
+      node_list            = self.compute_nodes
+      num_nodes            = len(node_list)
+      compute_node         = node_list[0]
+    except:
+      compute_node = self.gateway_host
+    
+    os.makedirs(deployment_path)
+
+    with open(input_data_fn, 'w') as ofp:
+      ofp.write(json.dumps(input_data))
+
+    with open(res_config_fn, 'w') as ofp:
+      ofp.write(json.dumps(self.res_configs))
+    
+    with open(job_script_fn, 'w') as ofp:
+      ofp.write(self.compose_job_script(input_data_fn_remote, deployment_id, res_config_fn_remote))
+
+    # sync the input data
+    self.__class__.sync_input_dirs(self.gateway_host, 
+                                   sync_list + [(os.path.join(session_dir, deployment_dir),'*')], 
+                                   self.local_prefix, remote_prefix)
+
+    cmd_st = "ssh {0} {1} {2}".format(self.gateway_host, self.submission_cmd, job_script_fn_remote)
+    print cmd_st
+    subprocess.Popen(cmd_st,
+                     shell=True, stdout=subprocess.PIPE,
+                     stdin=subprocess.PIPE)
+
+  
+  def compose_job_script(self):  
+    raise NotImplementedError( "Should have implemented this" )
+
+class StampedeResource(PBSResource):
+
+  num_cores_per_node = 16
+  submission_cmd = 'sbatch'
+
+  def get_paths(self):
+    path_dict = \
+      {
+       'io_dir':          self.io_dir, 
+       'resource_prefix': self.resource_prefix,
+      }
+    return path_dict
+
+  def get_environ(self):
+    d = { "PYTHONPATH": ["/opt/apps/python/2.7.1/modules/lib/python:/opt/apps/python/2.7.1/lib:",
+                         "/opt/apps/python/2.7.1/lib/python2.7/",
+                         os.path.join(self.resource_prefix,
+                                      'core/scripts')
+                        ],
+         }
+    return d
+
+  def compose_job_script(self, input_data_fn_remote, deployment_id, res_config_fn_remote):
+    qname = self.qname 
+    script_path = os.path.join(self.resource_prefix, 'core/scripts')
+    cmd = "/opt/apps/python/epd/7.3.2/bin/python " +\
+          "{0}/resources.py " +\
+          "--resource stampede --mode execute " +\
+          "--jobdata {1} --dep_config_name {2} --res_configs_fn {3}"
+
+    script_dict = { "num_cores": self.num_nodes * self.num_cores_per_node,
+                    "JOBID": "{0:06x}".format(deployment_id),
+                    "QUEUE": qname, "TIME": self.time_limit,
+                    "OUTFN": input_data_fn_remote + ".log",
+                    "CMD": cmd.format(script_path,input_data_fn_remote, self.dep_config_name, res_config_fn_remote),
+                  }
+
+    template = "#!/bin/bash\n" +\
+               "#SBATCH -J {JOBID}         \n" +\
+               "#SBATCH -o {OUTFN}         \n" +\
+               "#SBATCH -n {num_cores}     \n" +\
+               "#SBATCH -p {QUEUE}         \n" +\
+               "#SBATCH -t {TIME}          \n" +\
+               "env " + Resource.print_environ(self.get_environ()) + " {CMD}\n"
+
+    return template.format(**script_dict)
+
 if __name__ == '__main__':
   param_dict = { "resource": "",
                  "mode":     "",
@@ -708,7 +816,6 @@ if __name__ == '__main__':
     configs = eval(ifp.read())
     app_path = os.path.join(param_dict['prefix'], param_dict['app_dir'])
 
-    # TODO read the generators configs from configs.txt
     conf_fn_path = os.path.join(param_dict['prefix'], param_dict['app_dir'], 
                              param_dict['app_scriptdir'], param_dict['conf'])
     with open(conf_fn_path, 'r') as ifp:
