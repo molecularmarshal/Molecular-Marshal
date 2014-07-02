@@ -1,0 +1,5 @@
+1. cmd for stampede
+1) show job queue
+   showq -U [username]
+2) cancel job in queue
+   scancel [jobid]

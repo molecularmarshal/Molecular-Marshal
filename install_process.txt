@@ -1,0 +1,5 @@
+For debian or ubuntu:
+1. sudo apt-get install python-dev
+2. sudo apt-get install python-psycopg2
+3. sudo apt-get install build-essential
+4. sudo apt-get install screen 
