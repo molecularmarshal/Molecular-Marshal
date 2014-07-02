@@ -64,17 +64,20 @@ class Worker():
                                                 self.param_dict['configs']['generators'])
     
     # resource lookup
+    configs = self.param_dict['configs']
     res_name = self.param_dict['res_name'] 
-    res_configs = self.param_dict['configs']['resources'][res_name]
+    res_configs = configs['resources'][res_name]
     res_class = resources.get_res_class(app_path, res_configs)
     res_configs['res_name'] = res_name
 
     self.resource = res_class(self.param_dict.get('user'),
-                              self.param_dict['configs'],
+                              res_configs,
                               self.param_dict['worker_id'],
-                              res_name,
                               generator_options,
-                              self.param_dict['dep_config_name'])
+                              self.param_dict['dep_config_name'],
+                              configs['app_dir'],
+                              configs['local_prefix']
+                             )
 
     proc_id = os.getpid();
     conn = psycopg2.connect(database=self.param_dict['dbname'])

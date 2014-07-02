@@ -195,14 +195,14 @@ class Controller(object):
 
     with open(self.param_dict['conf'], 'r') as ifp:
       configs = eval(ifp.read())
-    
-    gateway_host = configs['gateway_host']
+   
 
     for d in l:
       res_name = d['res_name']
       res_configs = configs['resources'][res_name]
       res_configs['res_name'] = res_name
 
+      gateway_host = configs['resources'][res_name]['res_host']
       self.prepare_resource(res_configs, gateway_host)
       for i in xrange(0,d['num_workers']):
         cur.execute("select workers_insert('{0}');".format(res_name))

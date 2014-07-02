@@ -782,7 +782,7 @@ class StampedeResource(PBSResource):
     script_path = os.path.join(self.resource_prefix, 'core/scripts')
     cmd = "/opt/apps/python/epd/7.3.2/bin/python " +\
           "{0}/resources.py " +\
-          "--mode execute " +\
+          "--resource stampede --mode execute " +\
           "--jobdata {1} --dep_config_name {2} --conf_fn_remote {3} --res_name {4}"
 
 #    cmd_st = "ssh {0} env {1} python {2}/resources.py --mode execute --jobdata {3} --conf {4} --worker_id {5} --dep_config_name {6}".format(
@@ -835,7 +835,7 @@ if __name__ == '__main__':
     res_name = param_dict['res_name']
     res_configs = configs['resources'][res_name]
     resource_prefix = res_configs['res_prefix'] 
-    app_path = os.path.join(resource_prefix, configs['app_dir'])
+    app_path = os.path.join(resource_prefix, param_dict['app_dir'])
     res_class = get_res_class(app_path, res_configs) 
 #
 #  def __init__(self, user, res_configs, worker_id, res_name, 
