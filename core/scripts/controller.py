@@ -164,7 +164,7 @@ class Controller(object):
  
   # make sure that the corresponding remote resource has up-to-date scripts
   def prepare_resource(self, res_configs, gateway_host):
-    if res_configs['res_name'] != 'localhost':
+    if res_configs['res_name'] != 'LocalResource':
       app_path = os.path.join(self.param_dict['local_prefix'],
                               self.param_dict['app_prefix'])
       res_class = resources.get_res_class(app_path, res_configs)
@@ -200,14 +200,12 @@ class Controller(object):
     for d in l:
       res_name = d['res_name']
 
-      if not res_name == "localhost": 
-        res_configs = configs['resources'][res_name]
-        gateway_host = configs['resources'][res_name]['res_host']
-      else: 
-        res_configs = {}
-        gateway_host = "localhost"
+      res_configs = configs['resources'][res_name]
+      gateway_host = configs['resources'][res_name]['res_host']
+      
       res_configs['res_name'] = res_name
-
+      if res_name == "LocalResource":
+        res_configs['res_prefix'] = self.param_dict['local_prefix']
       self.prepare_resource(res_configs, gateway_host)
       for i in xrange(0,d['num_workers']):
         cur.execute("select workers_insert('{0}');".format(res_name))

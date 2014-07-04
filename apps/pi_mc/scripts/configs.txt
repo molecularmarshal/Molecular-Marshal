@@ -1,11 +1,17 @@
 {"app_dir": "apps/pi_mc/",
  "local_prefix":"bigdigsci_data",
  "resources": 
-  {"StampedeResource":
+  {"LocalResource":
+    {"res_class":  "LocalResource",
+     "res_host":   "localhost",
+     "deployment_configs": "scripts/local_dep_configs.txt",
+     "io_dir": "resource_io"
+    },
+   "StampedeResource":
     {"res_class":  "StampedeResource",
      "res_host":   "stampede",
      "res_prefix": "/scratch/01654/twoolf/projects/bigdigsci_data",
-     "deployment_configs": "scripts/dep_configs.txt",
+     "deployment_configs": "scripts/stampede_dep_configs.txt",
      "io_dir": "resource_io"
     },
    "DummyResource":
@@ -13,9 +19,9 @@
      "res_class":  "DummyResource",
      "res_host":   "dummy",
      "res_prefix": "/home/dummy/bigdigsci_data",
-     "deployment_configs": "scripts/dep_configs.txt",
+     "deployment_configs": "scripts/dummy_dep_configs.txt",
      "io_dir": "resource_io"
-     }
+    }
   },
  "generators": 
   {"pi_estimator": 

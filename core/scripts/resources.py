@@ -67,32 +67,31 @@ class Resource(object):
     self.gateway_host      = self.res_configs['res_host']
     self.dep_config_name   = dep_config_name
     
-    if not self.gateway_host == "localhost":
-      self.io_dir            = self.res_configs['io_dir']
-      self.res_host          = self.res_configs['res_host'] 
-      self.resource_prefix   = self.res_configs['res_prefix']
+    self.io_dir            = self.res_configs['io_dir']
+    self.res_host          = self.res_configs['res_host']
+
+    if self.res_host == "localhost":
+      self.resource_prefix = self.local_prefix
+      if self.res_configs.get('deployment_configs') == None:
+        self.dep_config = LocalResource.default_config 
+    else: 
+      self.resource_prefix = self.res_configs['res_prefix']
+    
+    if not hasattr(self, 'dep_config'):
+      
       if is_local:
         dep_config_path = os.path.join(os.getenv('BIGDIGSCIPREFIX'),
                                        app_dir,
                                        self.res_configs['deployment_configs'])
       else :
-        dep_config_path = os.path.join(self.res_configs['res_prefix'],
+        dep_config_path = os.path.join(self.resource_prefix,
                                        app_dir,
                                        self.res_configs['deployment_configs'])
 
-    else:
-      path_dict = self.get_paths()
-      self.io_dir = "resource_io"
-      self.resource_prefix = path_dict['resource_prefix']
-
-    
-    if not self.gateway_host == "localhost":
       dep_configs = Resource.parse_dep_config(dep_config_path)
-      dep_config = dep_configs[dep_config_name]
-    else:
-      dep_config = self.default_config
-
-    map(lambda (k, v): setattr(self, k, v), dep_config.items())
+      self.dep_config = dep_configs[dep_config_name]
+   
+    map(lambda (k, v): setattr(self, k, v), self.dep_config.items())
     self.local_prefix      = os.path.join(os.getenv('HOME'), local_prefix)
     try:
       gateway_host = self.gateway_host or self.res_name or 'localhost'

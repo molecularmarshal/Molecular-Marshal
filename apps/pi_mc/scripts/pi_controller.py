@@ -49,16 +49,17 @@ class Pi_Controller(controller.Controller):
   def setup(self):
     self.quit_everything()
     l = []
-    '''
-    l.append({'res_name':'localhost', 
+    
+    l.append({'res_name':'LocalResource', 
               'num_workers': 3,
               'dep_config_name': self.param_dict['dep_name']})
+
     '''
     l.append({'res_name':'DummyResource', 
               'num_workers': 1,
               'dep_config_name': self.param_dict['dep_name'],
             })
-    
+    '''    
 
     '''
     l.append({'res_name':'StampedeResource', 
