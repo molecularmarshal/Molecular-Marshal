@@ -33,3 +33,7 @@ class Generator(object):
   @abstractmethod
   def load(self, conn, d):
     raise NotImplementedError( "Should have implemented this" )
+
+  @abstractmethod
+  def get_output_fns(self, d):
+    raise NotImplementedError( "Should have implemented this" )
