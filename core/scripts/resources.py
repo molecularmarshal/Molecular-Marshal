@@ -225,14 +225,7 @@ class Resource(object):
 
     st_io.seek(0)
     conn = psycopg2.connect(database=param_dict['dbname'])
-
-    '''
-    conn = mddb_utils.get_dbconn(param_dict['dbname'],
-                                 param_dict['dbuser'],
-                                 param_dict['dbhost'],
-                                 param_dict['dbpass'])
-    '''
-
+    
     cur = conn.cursor()
     cur.copy_from(st_io, 'JobExecutionRecords', sep= '\t')
     conn.commit()
@@ -410,6 +403,9 @@ class Resource(object):
 
     return out_data
 
+
+#=============================== RemoteResource ======================================#
+
 class RemoteResource(Resource):
 
   # RemoteResource
@@ -476,30 +472,24 @@ class RemoteResource(Resource):
         print deployment_dir, 'completed'
     conn = psycopg2.connect(database=param_dict['dbname'])
 
-    '''
-    conn = mddb_utils.get_dbconn(param_dict['dbname'],
-                                 param_dict['dbuser'],
-                                 param_dict['dbhost'],
-                                 param_dict['dbpass'])
-    '''
-
     self.load(conn, job_dict_list, self.get_paths())
     self.cleanup(job_dict_list, self.get_paths())
 
     conn.close()
-    
+
   def compose_exec_cmd(self, compute_node, input_data_fn_remote,
-                       conf_fn_remote, worker_id, dep_config_name):
+                       conf_fn_remote, res_name, dep_config_name):
     env_st = Resource.print_environ(self.get_environ())
     script_path = os.path.join(self.resource_prefix, 'core/scripts')
-    cmd_st = "ssh {0} env {1} python {2}/resources.py --mode execute --jobdata {3} --conf {4} --worker_id {5} --dep_config_name {6}".format(
-            compute_node, env_st, script_path,
-            input_data_fn_remote, 
-            conf_fn_remote, worker_id, dep_config_name)
+    cmd_st = "ssh {0} env {1} python {2}/resources.py --mode execute --jobdata {3} --dep_config_name {4} --conf_fn_remote {5} --res_name {6} ".format(
+             compute_node, env_st, script_path, input_data_fn_remote, 
+             dep_config_name, conf_fn_remote, res_name)
 
     return cmd_st
 
-  def submit(self, session_dir, deployment_dir, deployment_id, input_data, app_dir, conf, worker_id, dep_config_name):
+  # submit for RemoteResource
+  def submit(self, session_dir, deployment_dir, deployment_id, res_name, 
+             input_data, app_dir, conf_fn_remote, worker_id, dep_config_name):
     sync_list = []
     for input_dict in input_data:
       input_dict['session_dir'] = session_dir
@@ -525,10 +515,6 @@ class RemoteResource(Resource):
     input_data_fn          = os.path.join(deployment_path, uid)
     input_data_fn_remote   = os.path.join(deployment_path_remote, uid)
    
-    # file stored resource configuration file
-    res_config_fn          = os.path.join(deployment_path, uid + '_res.txt')
-    res_config_fn_remote   = os.path.join(deployment_path_remote, uid + '_res.txt')
-    
     # if there is no available compute nodes, gateway_host will be applied to 
     # conducting computing
     try:
@@ -543,14 +529,11 @@ class RemoteResource(Resource):
     with open(input_data_fn, 'w') as ofp:
       ofp.write(json.dumps(input_data))
 
-    with open(res_config_fn, 'w') as ofp:
-      ofp.write(json.dumps(self.res_configs))
-
     # sync the input data
     self.__class__.sync_input_dirs(self.gateway_host, 
                                      sync_list + [(os.path.join(session_dir, deployment_dir),'*')], 
                                      self.local_prefix, remote_prefix)
-    cmd_st = self.compose_exec_cmd(compute_node, input_data_fn_remote, res_config_fn_remote, app_dir, conf, worker_id, dep_config_name)
+    cmd_st = self.compose_exec_cmd(compute_node, input_data_fn_remote, conf_fn_remote, res_name, dep_config_name)
     print cmd_st
     subprocess.Popen(cmd_st,
                      shell=True, stdout=subprocess.PIPE,
@@ -617,7 +600,7 @@ class RemoteResource(Resource):
     subprocess.Popen(cmd_st, shell=True,
                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout.read()
 
-#=====================================================================================
+#=============================== LocalResource ======================================#
 
 class LocalResource(Resource):
   
@@ -670,14 +653,7 @@ class LocalResource(Resource):
 
     self.execute_jobs_parallel(input_data, path_dict)
     conn = psycopg2.connect(database=param_dict['dbname'])
-
-    '''
-    conn = mddb_utils.get_dbconn(param_dict['dbname'],
-                                 param_dict['dbuser'],
-                                 param_dict['dbhost'],
-                                 param_dict['dbpass'])
-    '''
-   
+       
     self.load(conn, input_data, path_dict)
     conn.close()
 
@@ -687,9 +663,10 @@ class LocalResource(Resource):
     d = { "PYTHONPATH": ["/usr/bin/python2.7"],}
     return d
 
+
+#=============================== PBSResource ======================================#
+
 class PBSResource(RemoteResource):
-#self.submit(session_dir, deployment_dir, deployment_id, res_name, 
-#                job_dict_list, app_dir, conf_fn_remote, worker_id, self.dep_config_name)
 
   # slightly different from the base submit function, this one will compose a job script   
   def submit(self, session_dir, deployment_dir, deployment_id, res_name, 
@@ -755,6 +732,9 @@ class PBSResource(RemoteResource):
   def compose_job_script(self):  
     raise NotImplementedError( "Should have implemented this" )
 
+
+#=============================== StampedeResource ======================================#
+
 class StampedeResource(PBSResource):
 
   num_cores_per_node = 16
@@ -785,13 +765,6 @@ class StampedeResource(PBSResource):
           "--mode execute " +\
           "--jobdata {1} --dep_config_name {2} --conf_fn_remote {3} --res_name {4}"
 
-#    cmd_st = "ssh {0} env {1} python {2}/resources.py --mode execute --jobdata {3} --conf {4} --worker_id {5} --dep_config_name {6}".format(
-#            compute_node, env_st, script_path,
-#            input_data_fn_remote,                    
-#            conf_fn_remote, worker_id, dep_config_name)
-#
-
-
     script_dict = { "num_cores": self.num_nodes * self.num_cores_per_node,
                     "JOBID": "{0:06x}".format(deployment_id),
                     "QUEUE": qname, "TIME": self.time_limit,
@@ -809,6 +782,9 @@ class StampedeResource(PBSResource):
                "env " + Resource.print_environ(self.get_environ()) + " {CMD}\n"
 
     return template.format(**script_dict)
+
+
+#=============================== Main Method ======================================#
 
 if __name__ == '__main__':
   param_dict = { "mode":     "",
@@ -837,11 +813,6 @@ if __name__ == '__main__':
     resource_prefix = res_configs['res_prefix'] 
     app_path = os.path.join(resource_prefix, configs['app_dir'])
     res_class = get_res_class(app_path, res_configs) 
-#
-#  def __init__(self, user, res_configs, worker_id, res_name, 
-#               gen_opts, dep_config_name, app_dir, local_prefix, is_local=True):
-#
-
 
     res_obj = res_class(param_dict.get('user'),
                         res_configs,
