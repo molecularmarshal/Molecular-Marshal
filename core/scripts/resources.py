@@ -60,27 +60,38 @@ class Resource(object):
                gen_opts, dep_config_name, app_dir, local_prefix, is_local=True):
    
     self.worker_id         = worker_id
+    self.local_prefix      = local_prefix
     self.deployment_id     = 0
     self.generator_options = gen_opts
     self.res_configs       = res_configs
     self.gateway_host      = self.res_configs['res_host']
     self.dep_config_name   = dep_config_name
-    self.io_dir            = self.res_configs['io_dir']
-    self.res_host          = self.res_configs['res_host'] 
-    self.resource_prefix   = self.res_configs['res_prefix']
-    #self.res_name          = self.res_configs['res_name']
-
-    if is_local:
+    
+    if not self.gateway_host == "localhost":
+      self.io_dir            = self.res_configs['io_dir']
+      self.res_host          = self.res_configs['res_host'] 
+      self.resource_prefix   = self.res_configs['res_prefix']
+      if is_local:
         dep_config_path = os.path.join(os.getenv('BIGDIGSCIPREFIX'),
                                        app_dir,
                                        self.res_configs['deployment_configs'])
-    else :
+      else :
         dep_config_path = os.path.join(self.res_configs['res_prefix'],
                                        app_dir,
                                        self.res_configs['deployment_configs'])
 
-    dep_configs = Resource.parse_dep_config(dep_config_path)
-    dep_config = dep_configs[dep_config_name]    
+    else:
+      path_dict = self.get_paths()
+      self.io_dir = "resource_io"
+      self.resource_prefix = path_dict['resource_prefix']
+
+    
+    if not self.gateway_host == "localhost":
+      dep_configs = Resource.parse_dep_config(dep_config_path)
+      dep_config = dep_configs[dep_config_name]
+    else:
+      dep_config = self.default_config
+
     map(lambda (k, v): setattr(self, k, v), dep_config.items())
     self.local_prefix      = os.path.join(os.getenv('HOME'), local_prefix)
     try:
@@ -96,11 +107,7 @@ class Resource(object):
     self.sync_info_fn        = os.path.join('/tmp', gateway_host + '_' + str(uuid.uuid4()))
     # open and close the file to change the modified time
     open(self.sync_info_fn, 'w').close()
-    print "++++++++++++++++++SELF.IO_DIR+++++++++++++++++++++++++++"
-    print self.io_dir
-    print "++++++++++++++++++SELF.SYNC_PERIOD++++++++++++++++++++++"
-    print self.sync_period
-
+    
   # deployment id counter
   def get_next_deployment_id(self):
     deployment_id = self.deployment_id
@@ -603,7 +610,7 @@ class RemoteResource(Resource):
 #=============================== LocalResource ======================================#
 
 class LocalResource(Resource):
-  
+
   default_config = { 'num_nodes': 1,
                      'job_concurrency': 1,
                      'num_deployments': 30,
@@ -611,15 +618,13 @@ class LocalResource(Resource):
   res_configs = { 'gpu': {'job_concurrency':  1, 'num_deployments': 8},
                   'dev': {'job_concurrency':  1, 'num_deployments': 1},
                 }
-  
+
   def get_paths(self):
     path_dict = \
       {
+       'io_dir':          'resource_io',
        'local_prefix':    self.local_prefix,
-       'io_dir':          self.io_dir,
        'resource_prefix': self.local_prefix,
-       'template_prefix': os.path.join('/home/{0}'.format(os.environ['USER']), '{0}/mddb/templates'),
-       'template_link':   os.path.join('/home/{0}'.format(os.environ['USER']), '{0}/mddb/templates'),
       }
 
     return path_dict
@@ -630,7 +635,7 @@ class LocalResource(Resource):
   # like the remote deployment counterpart.
   def deploy_and_wait(self, session_dir, deployment_id, input_data, param_dict):
     deployment_dir            = self.get_deployment_name(deployment_id)
-    abs_deployment_dir        = os.path.join(Resource.local_prefix, Resource.io_dir,
+    abs_deployment_dir        = os.path.join(self.local_prefix, self.io_dir,
                                              session_dir, deployment_dir)
 
     if not os.path.exists(abs_deployment_dir):
@@ -640,11 +645,7 @@ class LocalResource(Resource):
     with open(input_data_fn, 'w') as ofp:
       ofp.write(json.dumps(input_data))
 
-
     path_dict = self.get_paths()
-    path_dict['template_prefix'] = path_dict['template_prefix'].format(self.user)
-    path_dict['template_link']   = path_dict['template_link'].format(self.user)
-    
     
     for d in input_data:
       gen_class = self.generator_options[d['generator']]
@@ -656,8 +657,7 @@ class LocalResource(Resource):
        
     self.load(conn, input_data, path_dict)
     conn.close()
-
-    #self.cleanup(input_data, LocalResource.get_paths())
+    #self.cleanup(input_data, self.get_paths())
 
   def get_environ(self):
     d = { "PYTHONPATH": ["/usr/bin/python2.7"],}
