@@ -72,7 +72,7 @@ class Pipeline_generator(generator.Generator):
   #  (3) run stages where each stage is a list of substages: [(command/operation, input, output)]
   #  (4) upon a substage failure, the execution restarts as the first substage of the stage
   def run_(self):
-
+    # template_prefix = os.path.join(resource_prefix, app_dir, "template")
     self.param_dict['template_prefix'] = self.param_dict['template_prefix'].format(
                                            os.getenv('HOME'),
                                            self.param_dict.get('user'))
@@ -96,6 +96,10 @@ class Pipeline_generator(generator.Generator):
       subprocess.Popen(cmd, shell=True, 
                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout.read()
 
+    # two types of files need to be copied to run_dir
+    # 1) aux_fn : keep these unchanged
+    # 2) template_fn : applied to dict subsitution 
+    # 3) template_fn_list : user defined list contain all template_fn 
     if hasattr(self, 'aux_fn_list'):
       for fn in self.aux_fn_list:
         s = os.path.join(self.param_dict['template_prefix'], self.param_dict['template_dir'], fn)
@@ -109,15 +113,8 @@ class Pipeline_generator(generator.Generator):
         print s, '->', t
         shutil.copy2(s,t)
 
-    for entry in  list(itertools.chain(self.inp_fn_list, *self.stage_list)):
-      if isinstance(entry, dict):
-        subdir   = entry.get('d') or ""
-        fns = [entry.get('i') or entry.get('si'), entry.get('a')]
-      else:
-        subdir   = ""
-        fns = [entry]
-
-      for fn in fns:
+    if hasattr(self, 'template_fn_list'):
+      for fn in self.template_fn_list:
         if fn != None:
           with open(os.path.join(self.param_dict['template_prefix'],
                                  self.param_dict['template_dir'], subdir, fn), 'r') as ifp:
@@ -137,22 +134,23 @@ class Pipeline_generator(generator.Generator):
       move_on = False
       while not move_on:
         for substage in stage:
-          out_fns = substage.get('o')
-          in_fn   = substage.get('i') or substage.get('si')
-          if out_fns == None:
-            try:
-              out_fns = [os.path.splitext(in_fn)[0] + self.default_out_ext]
-              substage['o'] = out_fns
-              cmd = 'rm ' + ' '.join(out_fns)
-              print cmd
-              subprocess.Popen(cmd, shell=True, cwd = output_prefix,
-                               stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout.read()
-
-
-
-            except:
-              substage['o'] = None
-         
+#
+#  Cleaning up old output files
+#  this should go inside run_substage because it's app dependent
+#
+#          out_fns = substage.get('o')
+#          in_fn   = substage.get('i') or substage.get('si')
+#          if out_fns == None:
+#            try:
+#              out_fns = [os.path.splitext(in_fn)[0] + self.default_out_ext]
+#              substage['o'] = out_fns
+#              cmd = 'rm ' + ' '.join(out_fns)
+#              print cmd
+#              subprocess.Popen(cmd, shell=True, cwd = output_prefix,
+#                               stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout.read()
+#            except:
+#              substage['o'] = None
+#         
           success = self.run_substage(output_prefix, substage)
           #success = True
           if success:
