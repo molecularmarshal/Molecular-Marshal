@@ -1,0 +1,16 @@
+{"default": 
+  { "num_nodes": 1, 
+    "job_concurrency": 16, 
+    "num_deployments": 10, 
+    "time_limit": "36:00:00",
+    "qname": "normal",
+    "sync_period": 1800
+  },
+ "customized": 
+  { "mpi": {"num_nodes": 6, "job_concurrency":  1, "num_deployments": 10},
+    "gpu": {"job_concurrency":  1, "qname": "gpu"},
+    "dev": {"qname": "development", "time_limit": "01:00:00", "sync_period": 180,
+            "job_concurrency": 1, "num_deployments": 1
+           }
+  }
+}

@@ -21,7 +21,9 @@ def get_gen_opts(script_path, gen_configs):
   return generator_options 
 
 class Generator(object):
-  
+ 
+  __metaclass__ = ABCMeta
+
   @abstractmethod
   def preprocess(self, input_params):
     raise NotImplementedError( "Should have implemented this" )
