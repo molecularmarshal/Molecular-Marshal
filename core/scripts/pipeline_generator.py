@@ -18,10 +18,6 @@ class Pipeline_generator(generator.Generator):
 
   # Application dependent and has to be implemented for each pipeline
   @abstractmethod
-  def __init__(self):
-    raise NotImplementedError( "Should have implemented this" )
-  
-  @abstractmethod
   def preprocess(self, input_params):
     raise NotImplementedError( "Should have implemented this" )
 
@@ -30,7 +26,10 @@ class Pipeline_generator(generator.Generator):
   def run_substage(self, param_dict):
     raise NotImplementedError( "Should have implemented this" )
 
-
+  # Application dependent and has to be implemented for each pipeline
+  # since for different user pipelines there may be different number of 
+  # parameters, we need to init the params for each object after we call 
+  # run method
   @abstractmethod
   def set_params(self, param_dict):
     raise NotImplementedError( "Should have implemented this" )
