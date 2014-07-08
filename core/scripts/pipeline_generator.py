@@ -18,7 +18,7 @@ class Pipeline_generator(generator.Generator):
 
   # Application dependent and has to be implemented for each pipeline
   @abstractmethod
-  def __init__(self, param_dict):
+  def __init__(self):
     raise NotImplementedError( "Should have implemented this" )
   
   @abstractmethod
@@ -30,8 +30,15 @@ class Pipeline_generator(generator.Generator):
   def run_substage(self, param_dict):
     raise NotImplementedError( "Should have implemented this" )
 
+
+  @abstractmethod
+  def set_params(self, param_dict):
+    raise NotImplementedError( "Should have implemented this" )
+
   # A run wrapper with timeout
-  def run(self):
+  def run(self, param_dict):
+    self.set_params(param_dict)
+
     timeout = None
     try:
       timeout = self.timeout
