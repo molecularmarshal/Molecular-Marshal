@@ -1,6 +1,6 @@
 {"app_dir": "apps/pi_mc/",
  "local_prefix": "bigdigsci_data",
- "templates_dir": "templates",
+ "template_dir": "templates",
  "resources": 
   {"LocalResource":
     {"res_class":  "LocalResource",
@@ -26,8 +26,8 @@
   },
  "generators": 
   {"pi_estimator": 
-    {"gen_path":  "scripts/pi_estimator.py",
-     "gen_class": "PI_Estimator"
+    {"gen_path":  "scripts/pi_estimator_pipeline.py",
+     "gen_class": "PI_Estimator_Pipeline"
     }
   }
 }
