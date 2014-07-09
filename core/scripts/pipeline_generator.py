@@ -8,6 +8,7 @@ import itertools
 import subprocess
 import shutil
 import time
+import generator
 from multiprocessing import Process
 
 # Generic Pipeline Class extended from generator bass class to execute a sequence 
@@ -31,12 +32,12 @@ class Pipeline_generator(generator.Generator):
   # parameters, we need to init the params for each object after we call 
   # run method
   @abstractmethod
-  def set_params(self, param_dict):
+  def set_params(self, run_dict):
     raise NotImplementedError( "Should have implemented this" )
 
   # A run wrapper with timeout
-  def run(self, param_dict):
-    self.set_params(param_dict)
+  def run(self, output_prefix, run_dict):
+    self.set_params(run_dict)
 
     timeout = None
     try:
@@ -157,7 +158,7 @@ class Pipeline_generator(generator.Generator):
 #            except:
 #              substage['o'] = None
 #         
-          success = self.run_substage(output_prefix, substage)
+          success = self.run_substage(substage)
           #success = True
           if success:
             move_on = True

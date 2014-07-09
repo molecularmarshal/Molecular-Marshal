@@ -37,6 +37,7 @@ class Controller(object):
     'mode'            : '',
     'core_dbdir'      : 'core/database',
     'core_scriptdir'  : 'core/scripts',
+    'template_dir'   : 'templates',
     'dbname'          : ('testdb',
                          'name of the database'),
     'dbhost'          : 'localhost',
@@ -169,18 +170,29 @@ class Controller(object):
                               self.param_dict['app_prefix'])
       res_class = resources.get_res_class(app_path, res_configs)
       remote_prefix = res_configs['res_prefix']
+      # sync core scripts
       res_class.sync_scripts(gateway_host, 
                              remote_prefix, 
                              os.getenv('BIGDIGSCIPREFIX'),
                              self.param_dict['core_scriptdir'])
       
+      # sync app scripts 
       app_script_prefix = os.path.join(self.param_dict['app_prefix'],
                                        self.param_dict['app_scriptdir'])
-
+      
       res_class.sync_scripts(gateway_host, 
                              remote_prefix, 
                              self.param_dict['local_prefix'],
                              app_script_prefix)
+      
+      # sync templates
+      templates_prefix = os.path.join(self.param_dict['app_prefix'],
+                                      self.param_dict['template_dir'])
+
+      res_class.sync_scripts(gateway_host, 
+                             remote_prefix, 
+                             self.param_dict['local_prefix'],
+                             templates_prefix)
 
 
   # iterates through a list 'l' of workers and starts worker processes

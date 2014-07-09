@@ -52,8 +52,8 @@ class Worker():
 
     # parse command line arguments
     self.param_dict = param_dict_parser.parse(self.param_dict)
-
-
+    print os.getcwd()
+    print self.param_dict['conf']
     with open(self.param_dict['conf'], 'r') as ifp:
         self.param_dict['configs'] = eval(ifp.read())
 
@@ -76,7 +76,8 @@ class Worker():
                               generator_options,
                               self.param_dict['dep_config_name'],
                               configs['app_dir'],
-                              configs['local_prefix']
+                              configs['local_prefix'],
+                              configs['template_dir']
                              )
     
     proc_id = os.getpid();

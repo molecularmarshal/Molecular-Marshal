@@ -6,6 +6,7 @@ import os
 import os.path
 import subprocess
 
+
 class PI_Estimator_Pipeline(pipeline_generator.Pipeline_generator):
 
     """
@@ -36,10 +37,8 @@ class PI_Estimator_Pipeline(pipeline_generator.Pipeline_generator):
     
     # write the input_data to local input_data_fn
     def preprocess(self, input_params):
-      try:
-          inpudt_fn = input_params[0]['input_fn']
-      except Exception error:
-          print "Error: " + str(error)
+      print input_params
+      inpudt_fn = input_params[0]['input_fn']
       with open(input_fn, 'w') as ifp:
           ifp.write(input_params)
       return

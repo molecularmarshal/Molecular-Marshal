@@ -89,7 +89,7 @@ class Pi_Pipeline_Controller(controller.Controller):
     job_dicts =  map(dict, zip(x_rand_seeds, y_rand_seeds))
     num_samples = 100
     for d in job_dicts:
-      d['generator']   = 'pi_estimator'
+      d['generator']   = 'pi_estimator_pipeline'
       d['num_samples'] = num_samples
       d['result_fn']   = 'result.txt'
       cur.execute("select jobqueue_insert('{0}')".format(json.dumps(d)))

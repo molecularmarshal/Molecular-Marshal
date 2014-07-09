@@ -1,4 +1,4 @@
-{"app_dir": "apps/pi_mc_pipeline/",
+{"app_dir": "apps/pi_mc/",
  "local_prefix": "bigdigsci_data",
  "template_dir": "templates",
  "resources": 

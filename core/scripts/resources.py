@@ -57,7 +57,8 @@ class Resource(object):
   # Initialize resource configurations, e.g., #nodes per deployments, the name of the
   # job queue (if PBS), etc.
   def __init__(self, user, res_configs, worker_id, 
-               gen_opts, dep_config_name, app_dir, local_prefix, is_local=True):
+               gen_opts, dep_config_name, app_dir, 
+               local_prefix, template_dir, is_local=True):
    
     self.worker_id         = worker_id
     self.local_prefix      = local_prefix
@@ -66,7 +67,8 @@ class Resource(object):
     self.res_configs       = res_configs
     self.gateway_host      = self.res_configs['res_host']
     self.dep_config_name   = dep_config_name
-    
+    self.app_dir           = app_dir 
+    self.template_dir      = template_dir
     self.io_dir            = self.res_configs['io_dir']
     self.res_host          = self.res_configs['res_host']
 
@@ -432,7 +434,10 @@ class RemoteResource(Resource):
       gen_name  = d.get('generator')
       gen_class = self.generator_options[gen_name]
       gen_obj = gen_class()
-      gen_obj.preprocess(dict(d.items()+ self.get_paths().items()))
+      # gen_obj.preprocess(dict(d.items()+ self.get_paths().items()))
+      # TODO add template_dir
+      d['app_dir'] = self.app_dir 
+      d['template_dir'] = self.template_dir 
       output_data.append((d['run_dir'],gen_obj.get_output_fns(d)))
       d['user'] = self.user
     print 'job_dict_list:', len(job_dict_list), ' jobs'
@@ -820,6 +825,7 @@ if __name__ == '__main__':
                         param_dict['dep_config_name'],
                         configs['app_dir'],
                         configs['local_prefix'],
+                        configs['template_dir'],
                         False)
 
     res_paths = res_obj.get_paths()

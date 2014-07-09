@@ -1,6 +1,5 @@
 import resources
 import os
-import uuid
 
 class DummyResource(resources.RemoteResource):
   
@@ -37,7 +36,7 @@ class DummyResource(resources.RemoteResource):
 
     sync_list = []
     for input_dict in input_data:
-      input_dict['input_fn'] = input_data_fn
+      input_dcit['input_fn'] = input_data_fn
       input_dict['session_dir'] = session_dir
       gen_name  = input_dict.get('generator')
       gen_class = self.generator_options[gen_name]
@@ -57,8 +56,7 @@ class DummyResource(resources.RemoteResource):
       compute_node = self.gateway_host
     
     os.makedirs(deployment_path)
-    # TODO
-    print "+++++++++++++++++++++++++++++++input_data+++++++++++++++++++" 
+    
     # TODO
     gen_obj.preprocess(input_data)
 
