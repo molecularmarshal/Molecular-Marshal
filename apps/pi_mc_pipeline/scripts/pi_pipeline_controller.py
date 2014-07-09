@@ -21,7 +21,7 @@ from multiprocessing import Process
 import psycopg2
 import psycopg2.extras
 
-class Pi_Controller(controller.Controller):
+class Pi_Pipeline_Controller(controller.Controller):
   app_param_dict = {
     'dbname':              'testdb_pi',
     'dbdir':               'database',
@@ -54,19 +54,18 @@ class Pi_Controller(controller.Controller):
               'num_workers': 3,
               'dep_config_name': self.param_dict['dep_name']})
     '''
-    '''
 
     l.append({'res_name':'DummyResource', 
               'num_workers': 1,
               'dep_config_name': self.param_dict['dep_name'],
             })
         
-
     '''
     l.append({'res_name':'StampedeResource', 
               'num_workers': 1,
               'dep_config_name': self.param_dict['dep_name'],
             })
+    '''
 
     self.setup_workers(l)
 
@@ -114,5 +113,5 @@ class Pi_Controller(controller.Controller):
 
 
 if __name__ == '__main__':
-  controller = Pi_Controller()
+  controller = Pi_Pipeline_Controller()
   controller.run()
