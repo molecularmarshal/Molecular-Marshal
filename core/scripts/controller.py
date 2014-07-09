@@ -107,7 +107,7 @@ class Controller(object):
       bigdigsci_prefix = os.getenv('HOME')
 
     dbdir  = os.path.join(bigdigsci_prefix,
-                          self.param_dict['app_prefix'],
+                          self.param_dict['app_dir'],
                           self.param_dict['dbdir'])
 
     core_dbdir = os.path.join(bigdigsci_prefix,
@@ -167,7 +167,7 @@ class Controller(object):
   def prepare_resource(self, res_configs, gateway_host):
     if res_configs['res_name'] != 'LocalResource':
       app_path = os.path.join(self.param_dict['local_prefix'],
-                              self.param_dict['app_prefix'])
+                              self.param_dict['app_dir'])
       res_class = resources.get_res_class(app_path, res_configs)
       remote_prefix = res_configs['res_prefix']
       # sync core scripts
@@ -177,7 +177,7 @@ class Controller(object):
                              self.param_dict['core_scriptdir'])
       
       # sync app scripts 
-      app_script_prefix = os.path.join(self.param_dict['app_prefix'],
+      app_script_prefix = os.path.join(self.param_dict['app_dir'],
                                        self.param_dict['app_scriptdir'])
       
       res_class.sync_scripts(gateway_host, 
@@ -186,7 +186,7 @@ class Controller(object):
                              app_script_prefix)
       
       # sync templates
-      templates_prefix = os.path.join(self.param_dict['app_prefix'],
+      templates_prefix = os.path.join(self.param_dict['app_dir'],
                                       self.param_dict['template_dir'])
 
       res_class.sync_scripts(gateway_host, 

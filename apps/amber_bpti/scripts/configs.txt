@@ -1,12 +1,8 @@
-{"app_dir": "apps/amber/",
+{"app_dir": "apps/amber_bpti/",
+ "template_dir": "templates",
  "local_prefix":"bigdigsci_data",
  "resources": 
-  {"LocalResource":
-    {"res_class":  "LocalResource",
-     "res_host":   "localhost",
-     "deployment_configs": "scripts/local_dep_configs.txt",
-     "io_dir": "resource_io"
-    },
+  {
    "StampedeResource":
     {"res_class":  "StampedeResource",
      "res_host":   "stampede",
@@ -14,14 +10,6 @@
      "deployment_configs": "scripts/stampede_dep_configs.txt",
      "io_dir": "resource_io"
     },
-   "DummyResource":
-    {"res_path":   "scripts/dummy_resource.py",
-     "res_class":  "DummyResource",
-     "res_host":   "dummy",
-     "res_prefix": "/home/dummy/bigdigsci_data",
-     "deployment_configs": "scripts/dummy_dep_configs.txt",
-     "io_dir": "resource_io"
-    }
   },
  "generators": 
   {"amber_simulator": 
