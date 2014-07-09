@@ -42,7 +42,8 @@ except:
 
 def get_res_class(prefix, res_configs):
   if res_configs.get('res_path'):
-      print os.path.join(prefix, res_configs['res_path'])
+      #TODO
+      print "+++++++GET_RES_CLASS+++++:" + os.path.join(prefix, res_configs['res_path'])
       mod = imp.load_source('res_mod', os.path.join(prefix, res_configs['res_path']))
       res_class = eval("mod.{res_class}".format(**res_configs))
   else:
@@ -198,7 +199,7 @@ class Resource(object):
   def prepare_job_dicts(self, session_dir, deployment_id, job_dicts, param_dict):
     st_io = cStringIO.StringIO()
     for i,d in enumerate(job_dicts):
-      print d
+      print "+++++++PREPARE_JOB_DICTS++++++: " + str(d)
       d.update(d.pop('data'))
       run_dir = self.int2dirname('r_', i)
       deployment_dir = self.get_deployment_name(deployment_id)
@@ -258,7 +259,8 @@ class Resource(object):
                                 d['session_dir'], d['deployment_dir'], d['run_dir'])
       print 'from: ', result_dir
       gen_name   = d.get('generator') or d.get('simulator') or d.get('docker')   
-      print self.generator_options
+      #TODO
+      print "++++++GETPATH++++++" + str(self.generator_options)
       gen_obj = self.generator_options[gen_name]()
 
       ret = gen_obj.load(conn, result_dir, d, local_paths)
@@ -378,8 +380,7 @@ class Resource(object):
                                    run_dict['session_dir'], 
                                    run_dict['deployment_dir'],
                                    run_dict['run_dir'])
-
-
+      
       if not os.path.exists(output_prefix):
         os.makedirs(output_prefix)
 
@@ -434,10 +435,10 @@ class RemoteResource(Resource):
       gen_name  = d.get('generator')
       gen_class = self.generator_options[gen_name]
       gen_obj = gen_class()
-      # gen_obj.preprocess(dict(d.items()+ self.get_paths().items()))
+      gen_obj.preprocess(dict(d.items()+ self.get_paths().items()))
       # TODO add template_dir
       d['app_dir'] = self.app_dir 
-      d['template_dir'] = self.template_dir 
+      d['template_dir'] = self.template_dir
       output_data.append((d['run_dir'],gen_obj.get_output_fns(d)))
       d['user'] = self.user
     print 'job_dict_list:', len(job_dict_list), ' jobs'

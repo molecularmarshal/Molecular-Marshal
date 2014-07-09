@@ -5,7 +5,9 @@ import pipeline_generator
 import os
 import os.path
 import subprocess
-
+import json
+import sys
+import time
 
 class PI_Estimator_Pipeline(pipeline_generator.Pipeline_generator):
 
@@ -19,7 +21,7 @@ class PI_Estimator_Pipeline(pipeline_generator.Pipeline_generator):
                                    run_dict['io_dir'], 
                                    run_dict['session_dir'], 
                                    run_dict['deployment_dir'],
-                                  run_dict['run_dir'])
+                                   run_dict['run_dir'])
       run_dict['output_prefix'] = output_prefix
       self.param_dict = run_dict
       self.stage_list = [[{"cmd": "python",
@@ -37,10 +39,15 @@ class PI_Estimator_Pipeline(pipeline_generator.Pipeline_generator):
     
     # write the input_data to local input_data_fn
     def preprocess(self, input_params):
-      print input_params
-      inpudt_fn = input_params[0]['input_fn']
-      with open(input_fn, 'w') as ifp:
-          ifp.write(input_params)
+      '''  
+      deployment_path = input_params[0]['deployment_path']
+      if not os.path.exists(deployment_path):
+          os.mkdirs(path)
+      filename = input_params[0]['fn_name']
+
+      with open(os.path.join(deployment_path, filename), 'w') as ifp:
+          ifp.write(json.dumps(input_params))
+      '''
       return
     
     # customized run_substage method 
@@ -52,12 +59,11 @@ class PI_Estimator_Pipeline(pipeline_generator.Pipeline_generator):
       # input file in template_dir
       in_fn = os.path.join(self.param_dict['resource_prefix'],
                            self.param_dict['app_dir'],
-                           self.param_dict['templat_dir'],
+                           self.param_dict['template_dir'],
                            substage.get('i'))
 
-      args = substage.get('args')
       cmd = substage.get('cmd')
-      args = substage.get('args')
+      args = substage.get('a')
 
       tmp_file = substage.get('t_f')
       if tmp_file:
@@ -68,15 +74,15 @@ class PI_Estimator_Pipeline(pipeline_generator.Pipeline_generator):
       print '==============================================================='
       print 'in_fn:', in_fn
       print 'output_prefix:', output_prefix
-      print 'command:\n', cmd, " ", in_fn, " ", (tmp_file if tmp_file else args)
+      print 'command:\n', cmd, "", in_fn, "", (tmp_file if tmp_file else args)
       print 'out_fns: ', ', '.join(out_fns)
       print '==============================================================='
   
       sys.stdout.flush()
   
-      log_fn = in_fn + '.log'
+      log_fn = substage.get('i') + '.log'
       with open(os.path.join(output_prefix, log_fn), "w") as debug_log:
-        subprocess.call(cmd + ' ' + ' ' + in_fn + ' ' + (tmp_file if tmp_file else args), 
+        subprocess.call(cmd + ' ' + in_fn + ' ' + (tmp_file if tmp_file else args), 
                         shell=True, cwd = output_prefix,
                         stderr=subprocess.STDOUT, stdout=debug_log)
       time.sleep(0.1)

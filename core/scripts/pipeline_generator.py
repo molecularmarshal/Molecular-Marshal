@@ -80,9 +80,9 @@ class Pipeline_generator(generator.Generator):
   #  (4) upon a substage failure, the execution restarts as the first substage of the stage
   def run_(self):
     # template_prefix = os.path.join(resource_prefix, app_dir, "template")
-    self.param_dict['template_prefix'] = self.param_dict['template_prefix'].format(
-                                           os.getenv('HOME'),
-                                           self.param_dict.get('user'))
+    self.param_dict['template_prefix'] = os.path.join(self.param_dict['resource_prefix'],
+                                                      self.param_dict['app_dir'],
+                                                      self.param_dict['template_dir'])
 
     output_prefix = os.path.join(self.param_dict['resource_prefix'], 
                                  self.param_dict['io_dir'], 
@@ -94,19 +94,21 @@ class Pipeline_generator(generator.Generator):
 
     if not os.path.exists(output_prefix):
       os.makedirs(output_prefix)
-
-    for aux_dir in self.param_dict.get('aux_dirs') or []:
-      cmd = 'rsync -av {0}/{1}/{2} {3}'.format(self.param_dict['template_prefix'], 
-                                               self.param_dict['template_dir'], 
-                                               aux_dir, output_prefix)
-      print cmd
-      subprocess.Popen(cmd, shell=True, 
-                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout.read()
+    
+    # TODO we assume that the templates dir is in the same level of apps/*/scripts
+    #for aux_dir in self.param_dict.get('aux_dirs') or []:
+    #  cmd = 'rsync -av {0}/{1}/{2} {3}'.format(self.param_dict['template_prefix'], 
+    #                                           self.param_dict['template_dir'], 
+    #                                           aux_dir, output_prefix)
+    #  print cmd
+    #  subprocess.Popen(cmd, shell=True, 
+    #                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout.read()
 
     # two types of files need to be copied to run_dir
     # 1) aux_fn : keep these unchanged
     # 2) template_fn : applied to dict subsitution 
     # 3) template_fn_list : user defined list contain all template_fn 
+
     if hasattr(self, 'aux_fn_list'):
       for fn in self.aux_fn_list:
         s = os.path.join(self.param_dict['template_prefix'], self.param_dict['template_dir'], fn)

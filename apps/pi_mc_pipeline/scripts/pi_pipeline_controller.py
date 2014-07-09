@@ -26,7 +26,7 @@ class Pi_Pipeline_Controller(controller.Controller):
     'dbname':              'testdb_pi',
     'dbdir':               'database',
     'local_prefix':        os.getenv('BIGDIGSCIPREFIX'),
-    'app_prefix':          'apps/pi_mc',
+    'app_prefix':          'apps/pi_mc_pipeline',
     'app_scriptdir':       'scripts',
     'mode':                '',
     'dep_name':            'default',

@@ -21,6 +21,7 @@ def gen_rand_points(input_fn):
             tmp_dict['x'] = tmp_x
             tmp_dict['y'] = tmp_y
             tmp_dict['num_samples'] = num_samples
+            tmp_dict['jq_entry_id'] = input_params['jq_entry_id']
             ifp.write(json.dumps(tmp_dict))
             ifp.write('\n')
     print "Stage 1 done"
