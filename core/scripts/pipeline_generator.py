@@ -24,7 +24,7 @@ class Pipeline_generator(generator.Generator):
 
   # Application dependent and has to be implemented for each pipeline
   @abstractmethod
-  def run_substage(self, param_dict):
+  def run_substage(self, output_prefix, param_dict):
     raise NotImplementedError( "Should have implemented this" )
 
   # Application dependent and has to be implemented for each pipeline
@@ -110,9 +110,9 @@ class Pipeline_generator(generator.Generator):
     # 2) template_fn : applied to dict subsitution 
     # 3) template_fn_list : user defined list contain all template_fn 
 
-    if hasattr(self, 'aux_fn_list'):
-      for fn in self.aux_fn_list:
-        s = os.path.join(self.param_dict['template_prefix'], self.param_dict['template_dir'], fn)
+    if hasattr(self, 'input_fn_list'):
+      for fn in self.input_fn_list:
+        s = os.path.join(self.param_dict['template_prefix'], fn)
         t = os.path.join(output_prefix, fn)
 
         work_dir = os.path.split(t)[0]
@@ -127,10 +127,10 @@ class Pipeline_generator(generator.Generator):
       for fn in self.template_fn_list:
         if fn != None:
           with open(os.path.join(self.param_dict['template_prefix'],
-                                 self.param_dict['template_dir'], subdir, fn), 'r') as ifp:
+                                 fn), 'r') as ifp:
             template = ifp.read()
 
-            fn = os.path.join(output_prefix, subdir, fn)
+            fn = os.path.join(output_prefix, fn)
             work_dir = os.path.split(fn)[0]
             print 'work_dir:', work_dir
             if not os.path.exists(work_dir):
@@ -161,7 +161,7 @@ class Pipeline_generator(generator.Generator):
 #            except:
 #              substage['o'] = None
 #         
-          success = self.run_substage(substage)
+          success = self.run_substage(output_prefix, substage)
           #success = True
           if success:
             move_on = True

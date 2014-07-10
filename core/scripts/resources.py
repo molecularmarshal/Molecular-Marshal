@@ -72,7 +72,7 @@ class Resource(object):
     self.template_dir      = template_dir
     self.io_dir            = self.res_configs['io_dir']
     self.res_host          = self.res_configs['res_host']
-    self.usr_paths         = self.res_configs.get('user_paths') or []
+    self.usr_paths         = self.res_configs.get('usr_paths') or []
     self.env_vars          = self.res_configs.get('env_vars') or {}
     self.cmd_dict          = self.res_configs.get('cmd_dict') or {}
 
@@ -408,7 +408,7 @@ class Resource(object):
           sys.stdout = ofp
           sys.stderr = ofp
 
-        out_dict = gen_obj.run(output_prefix, run_dict)
+        out_dict = gen_obj.run(output_prefix, run_dict, self.cmd_dict)
         if self.__class__ != LocalResource:
           # reset stdout and stderr to original values
           sys.stdout = actual_stdout
