@@ -431,16 +431,21 @@ class RemoteResource(Resource):
     res_name = param_dict['res_name'] 
     deployment_dir = self.get_deployment_name(deployment_id)
     output_data = []
+    # TODO for preprocessing files locally
     for d in job_dict_list:
+      deployment_path = os.path.join(os.getenv('BIGDIGSCIDATA'), self.io_dir, 
+                                     session_dir, deployment_dir, d['run_dir'])
       gen_name  = d.get('generator')
       gen_class = self.generator_options[gen_name]
       gen_obj = gen_class()
-      gen_obj.preprocess(dict(d.items()+ self.get_paths().items()))
-      # TODO add template_dir
+      # TODO add params for preprocess
+      d['deployment_path'] = deployment_path
       d['app_dir'] = self.app_dir 
       d['template_dir'] = self.template_dir
       output_data.append((d['run_dir'],gen_obj.get_output_fns(d)))
       d['user'] = self.user
+      gen_obj.preprocess(dict(d.items()+ self.get_paths().items()))
+
     print 'job_dict_list:', len(job_dict_list), ' jobs'
     wait_list     = []
     for run_dir,d in output_data:
@@ -713,8 +718,9 @@ class PBSResource(RemoteResource):
       compute_node         = node_list[0]
     except:
       compute_node = self.gateway_host
-    
-    os.makedirs(deployment_path)
+    # TODO 
+    if not os.path.isdir(deployment_path):
+      os.makedirs(deployment_path)
 
     with open(input_data_fn, 'w') as ofp:
       ofp.write(json.dumps(input_data))

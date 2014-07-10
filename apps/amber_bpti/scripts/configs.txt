@@ -12,7 +12,7 @@
     },
   },
  "generators": 
-  {"amber_simulator": 
+  {"Amber_Simulator": 
     {"gen_path":  "scripts/amber_simulator.py",
      "gen_class": "Amber_Simulator"
     }

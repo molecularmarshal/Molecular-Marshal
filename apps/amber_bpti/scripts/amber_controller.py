@@ -72,6 +72,7 @@ class Amber_Controller(controller.Controller):
 
 
   def exec_jobs(self):
+    print "+++++ exectuating jobs +++++"
     conn = psycopg2.connect(database=self.param_dict['dbname'])
     cur = conn.cursor()
     cur.execute('truncate table jobqueue')
@@ -86,13 +87,12 @@ class Amber_Controller(controller.Controller):
                       'generator': 'Amber_Simulator',
                      }
 
-    cur = conn.cursor()
-    cur.execute('truncate table jobqueue')
     for d in l:
       d.update(default_params)
       print d
       cur.execute("select jobqueue_insert('{0}')".format(json.dumps(d)))
-
+    
+    print "+++++ update +++++"
     cur.close()
     conn.commit()
     conn.close()   
