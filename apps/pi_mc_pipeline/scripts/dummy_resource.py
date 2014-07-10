@@ -13,7 +13,5 @@ class DummyResource(resources.RemoteResource):
       }
     return path_dict
 
-  def get_environ(self):
-    d = { "PYTHONPATH": [os.path.join(self.resource_prefix,
-                                      'core/scripts')]}
-    return d
+  def get_python_path(self):
+    return [os.path.join(self.resource_prefix, 'core/scripts')]

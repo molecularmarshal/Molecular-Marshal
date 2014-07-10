@@ -31,7 +31,7 @@ class Generator(object):
     raise NotImplementedError( "Should have implemented this" )
 
   @abstractmethod
-  def run(self, output_prefix, input_params):
+  def run(self, output_prefix, input_params, cmd_dict):
     raise NotImplementedError( "Should have implemented this" )
 
   @abstractmethod

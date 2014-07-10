@@ -72,6 +72,10 @@ class Resource(object):
     self.template_dir      = template_dir
     self.io_dir            = self.res_configs['io_dir']
     self.res_host          = self.res_configs['res_host']
+    self.usr_paths         = self.res_configs.get('user_paths') or []
+    self.env_vars          = self.res_configs.get('env_vars') or {}
+    self.cmd_dict          = self.res_configs.get('cmd_dict') or {}
+
 
     if self.res_host == "localhost":
       self.resource_prefix = self.local_prefix
@@ -183,6 +187,12 @@ class Resource(object):
   @staticmethod
   def print_environ(d):
     return " ".join(["{0}={1}".format(k,":".join(v)) for k,v in d.items()])
+
+  def get_environ(self):
+    d = { "PYTHONPATH": self.get_python_path(),
+          "PATH": self.usr_paths,
+        }
+    return dict(d.items() + self.env_vars.items())
 
   # Starts a deployment process and insert it into the deployment process pool
   def deploy(self, session_dir, input_data, param_dict):
@@ -490,7 +500,7 @@ class RemoteResource(Resource):
     conn = psycopg2.connect(database=param_dict['dbname'])
 
     self.load(conn, job_dict_list, self.get_paths())
-    self.cleanup(job_dict_list, self.get_paths())
+    #self.cleanup(job_dict_list, self.get_paths())
 
     conn.close()
 
@@ -669,9 +679,8 @@ class LocalResource(Resource):
     conn.close()
     #self.cleanup(input_data, self.get_paths())
 
-  def get_environ(self):
-    d = { "PYTHONPATH": ["/usr/bin/python2.7"],}
-    return d
+  def get_python_path(self):
+    return ["/usr/bin/python2.7"]
 
 
 #=============================== PBSResource ======================================#
@@ -759,14 +768,13 @@ class StampedeResource(PBSResource):
       }
     return path_dict
 
-  def get_environ(self):
-    d = { "PYTHONPATH": ["/opt/apps/python/2.7.1/modules/lib/python:/opt/apps/python/2.7.1/lib:",
+  def get_python_path(self):
+    python_paths = ["/opt/apps/python/2.7.1/modules/lib/python:/opt/apps/python/2.7.1/lib:",
                          "/opt/apps/python/2.7.1/lib/python2.7/",
                          os.path.join(self.resource_prefix,
                                       'core/scripts')
-                        ],
-         }
-    return d
+                   ]
+    return python_paths
 
   def compose_job_script(self, input_data_fn_remote, deployment_id, conf_fn_remote, res_name):
     qname = self.qname 

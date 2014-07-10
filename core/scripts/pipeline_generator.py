@@ -36,8 +36,9 @@ class Pipeline_generator(generator.Generator):
     raise NotImplementedError( "Should have implemented this" )
 
   # A run wrapper with timeout
-  def run(self, output_prefix, run_dict):
+  def run(self, output_prefix, run_dict, cmd_dict):
     self.set_params(run_dict)
+    self.cmd_dict = cmd_dict
 
     timeout = None
     try:
